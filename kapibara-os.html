@@ -1,0 +1,1864 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>kapibara OS</title>
+<style>
+/* ===== KAPIBARA OS — ChromeBook × Windows11 fusion ===== */
+:root {
+  --bg: #1a1a2e;
+  --bg2: #16213e;
+  --bg3: #0f3460;
+  --surface: rgba(255,255,255,0.06);
+  --surface2: rgba(255,255,255,0.10);
+  --surface3: rgba(255,255,255,0.15);
+  --border: rgba(255,255,255,0.12);
+  --border2: rgba(255,255,255,0.20);
+  --text: #e8e8f0;
+  --text2: #a8a8c0;
+  --text-muted: #6060a0;
+  --accent: #0078d4;
+  --accent2: #2ea8ff;
+  --accent-glow: rgba(0,120,212,0.35);
+  --green: #3ecf8e;
+  --red: #ff6b6b;
+  --yellow: #ffd93d;
+  --purple: #9b72cf;
+  --pink: #e040fb;
+  --font: 'Segoe UI', 'Noto Sans JP', system-ui, sans-serif;
+  --font-mono: 'Cascadia Code', 'JetBrains Mono', 'Consolas', monospace;
+  --radius: 8px;
+  --radius2: 12px;
+  --shadow: 0 8px 32px rgba(0,0,0,0.5);
+  --taskbar-h: 44px;
+  --acrylic: rgba(22, 33, 62, 0.85);
+}
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html,body { width:100%; height:100%; overflow:hidden; font-family:var(--font); background:var(--bg); color:var(--text); user-select:none; }
+
+/* ===== BOOT SCREEN ===== */
+#boot-screen {
+  position:fixed; inset:0; background:#000;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  z-index:9999;
+}
+.boot-logo-wrap { text-align:center; margin-bottom:40px; }
+.boot-kapilogo { font-size:80px; animation:bootFloat 2s ease-in-out infinite; }
+@keyframes bootFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+.boot-osname { font-size:28px; font-weight:300; color:#e8e8f0; margin-top:12px; letter-spacing:3px; }
+.boot-osname span { color:#0078d4; font-weight:600; }
+.boot-sub-text { font-size:12px; color:#444; margin-top:6px; letter-spacing:1px; }
+#boot-log {
+  font-family:var(--font-mono); font-size:11px; color:#444;
+  width:640px; max-height:220px; overflow:hidden;
+  text-align:left; margin-bottom:24px;
+  line-height:1.6;
+}
+#boot-progress-wrap {
+  width:280px; height:3px; background:#1a1a1a; border-radius:2px; overflow:hidden;
+}
+#boot-progress-bar {
+  height:100%; width:0%; background:linear-gradient(90deg,#0078d4,#2ea8ff);
+  transition:width 0.1s; border-radius:2px;
+  box-shadow:0 0 8px #0078d4;
+}
+
+/* ===== LOGIN SCREEN ===== */
+#login-screen {
+  position:fixed; inset:0; display:none;
+  align-items:center; justify-content:center;
+  background:radial-gradient(ellipse at 30% 40%, #0f3460 0%, #1a1a2e 50%, #0a0a1a 100%);
+  z-index:9998;
+}
+#login-particles { position:absolute; inset:0; pointer-events:none; }
+#login-box {
+  position:relative; z-index:1;
+  background:rgba(255,255,255,0.07);
+  backdrop-filter:blur(24px);
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:20px;
+  padding:44px 48px;
+  min-width:360px;
+  text-align:center;
+  box-shadow:0 24px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05);
+}
+.login-avatar { font-size:64px; margin-bottom:12px; }
+.login-user { font-size:22px; font-weight:600; color:#e8e8f0; }
+.login-sub { font-size:13px; color:#6060a0; margin-top:4px; margin-bottom:28px; }
+#login-password {
+  width:100%; padding:12px 16px;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:10px;
+  color:#e8e8f0; font-size:15px; text-align:center;
+  outline:none; letter-spacing:3px;
+  transition:border-color 0.2s, box-shadow 0.2s;
+}
+#login-password:focus { border-color:#0078d4; box-shadow:0 0 0 3px rgba(0,120,212,0.25); }
+#login-btn {
+  width:100%; margin-top:14px; padding:13px;
+  background:linear-gradient(135deg,#0078d4,#0063b1);
+  border:none; border-radius:10px;
+  color:#fff; font-size:15px; font-weight:600;
+  cursor:pointer; transition:all 0.2s;
+}
+#login-btn:hover { background:linear-gradient(135deg,#1a8fe3,#0078d4); transform:translateY(-1px); box-shadow:0 4px 16px rgba(0,120,212,0.4); }
+.login-hint { font-size:11px; color:#404060; margin-top:10px; }
+.login-error { color:#ff6b6b; font-size:12px; margin-top:8px; display:none; }
+#login-clock { position:absolute; top:40px; right:48px; text-align:right; color:#e8e8f0; }
+#login-clock .lc-time { font-size:48px; font-weight:200; }
+#login-clock .lc-date { font-size:14px; color:#a8a8c0; margin-top:4px; }
+
+/* ===== DESKTOP ===== */
+#desktop {
+  position:fixed; inset:0; display:none;
+  overflow:hidden;
+}
+#wallpaper-canvas { position:absolute; inset:0; width:100%; height:100%; }
+
+/* ===== DESKTOP ICONS ===== */
+#desktop-icons {
+  position:absolute; top:20px; left:20px;
+  display:flex; flex-direction:column; gap:8px;
+  z-index:10;
+}
+.desk-icon {
+  display:flex; flex-direction:column; align-items:center;
+  width:76px; padding:8px 4px;
+  border-radius:10px; cursor:pointer;
+  transition:background 0.15s;
+}
+.desk-icon:hover { background:rgba(255,255,255,0.12); }
+.desk-icon:active { background:rgba(255,255,255,0.20); transform:scale(0.96); }
+.desk-icon.selected { background:rgba(0,120,212,0.3); outline:1px solid rgba(0,120,212,0.5); }
+.desk-icon-img { font-size:36px; }
+.desk-icon-label {
+  font-size:11px; color:#e8e8f0; text-align:center;
+  margin-top:5px; line-height:1.3;
+  text-shadow:0 1px 4px rgba(0,0,0,0.8);
+}
+
+/* ===== TASKBAR ===== */
+#taskbar {
+  position:absolute; bottom:0; left:0; right:0;
+  height:var(--taskbar-h);
+  background:var(--acrylic);
+  backdrop-filter:blur(20px) saturate(1.5);
+  border-top:1px solid rgba(255,255,255,0.10);
+  display:flex; align-items:center;
+  z-index:1000;
+  padding:0 8px;
+  gap:4px;
+}
+#taskbar-start {
+  display:flex; align-items:center; gap:6px;
+  padding:6px 14px;
+  border-radius:8px;
+  cursor:pointer;
+  font-size:13px; font-weight:600;
+  transition:background 0.15s;
+  color:#e8e8f0;
+  flex-shrink:0;
+}
+#taskbar-start:hover { background:rgba(255,255,255,0.10); }
+#taskbar-start .ts-icon { font-size:20px; }
+.taskbar-sep { width:1px; height:24px; background:rgba(255,255,255,0.12); margin:0 4px; flex-shrink:0; }
+#taskbar-apps { display:flex; align-items:center; gap:2px; flex:1; overflow:hidden; }
+.taskbar-btn {
+  display:flex; align-items:center; gap:6px;
+  padding:5px 10px;
+  border-radius:6px;
+  cursor:pointer;
+  font-size:12px; color:#a8a8c0;
+  transition:all 0.15s;
+  white-space:nowrap;
+  max-width:160px; overflow:hidden;
+}
+.taskbar-btn:hover { background:rgba(255,255,255,0.10); color:#e8e8f0; }
+.taskbar-btn.active { background:rgba(255,255,255,0.15); color:#e8e8f0; }
+.taskbar-btn.minimized { opacity:0.6; }
+.taskbar-btn-icon { font-size:16px; flex-shrink:0; }
+.taskbar-btn span:last-child { overflow:hidden; text-overflow:ellipsis; }
+#taskbar-tray {
+  display:flex; align-items:center; gap:4px;
+  flex-shrink:0; margin-left:auto;
+}
+.tray-item { padding:5px 7px; border-radius:6px; cursor:pointer; font-size:14px; transition:background 0.15s; }
+.tray-item:hover { background:rgba(255,255,255,0.10); }
+#tray-clock {
+  padding:5px 10px; border-radius:6px; cursor:pointer;
+  font-size:12px; color:#e8e8f0; text-align:right; line-height:1.4;
+  transition:background 0.15s; white-space:nowrap;
+}
+#tray-clock:hover { background:rgba(255,255,255,0.10); }
+
+/* ===== START MENU ===== */
+#start-menu {
+  position:absolute; bottom:var(--taskbar-h); left:0;
+  width:380px; display:none;
+  background:var(--acrylic);
+  backdrop-filter:blur(32px) saturate(2);
+  border:1px solid var(--border2);
+  border-radius:var(--radius2) var(--radius2) 0 0;
+  box-shadow:var(--shadow);
+  z-index:2000;
+  overflow:hidden;
+}
+#start-header {
+  display:flex; align-items:center; gap:14px;
+  padding:20px 20px 12px;
+}
+.start-avatar { font-size:40px; }
+.start-user { font-size:16px; font-weight:600; }
+.start-sub { font-size:12px; color:var(--text-muted); }
+#start-search-wrap { padding:0 16px 12px; }
+#start-search {
+  width:100%; padding:10px 14px;
+  background:rgba(255,255,255,0.08);
+  border:1px solid var(--border);
+  border-radius:8px; color:var(--text);
+  font-size:13px; outline:none;
+}
+#start-search:focus { border-color:var(--accent); }
+#start-apps {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:4px; padding:0 12px;
+}
+.start-app {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 12px; border-radius:8px;
+  cursor:pointer; font-size:13px;
+  transition:background 0.15s;
+}
+.start-app:hover { background:var(--surface2); }
+.start-app-icon { font-size:20px; }
+#start-footer {
+  display:flex; gap:8px;
+  padding:12px 20px 16px;
+  border-top:1px solid var(--border);
+  margin-top:12px;
+}
+#start-footer button {
+  flex:1; padding:8px; background:var(--surface);
+  border:1px solid var(--border); border-radius:8px;
+  color:var(--text2); font-size:12px; cursor:pointer;
+  transition:background 0.15s;
+}
+#start-footer button:hover { background:var(--surface2); }
+
+/* ===== CONTEXT MENU ===== */
+#context-menu {
+  position:fixed; display:none;
+  background:var(--acrylic);
+  backdrop-filter:blur(24px);
+  border:1px solid var(--border2);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  z-index:5000; min-width:200px;
+  padding:6px;
+}
+.ctx-item {
+  padding:8px 12px; border-radius:6px;
+  cursor:pointer; font-size:13px;
+  transition:background 0.1s;
+}
+.ctx-item:hover { background:var(--surface2); }
+.ctx-sep { height:1px; background:var(--border); margin:4px 0; }
+
+/* ===== WINDOWS ===== */
+#windows-container { position:absolute; inset:0 0 var(--taskbar-h) 0; }
+.window {
+  position:absolute;
+  background:rgba(22,33,62,0.92);
+  backdrop-filter:blur(20px) saturate(1.5);
+  border:1px solid var(--border2);
+  border-radius:var(--radius2);
+  box-shadow:0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+  display:flex; flex-direction:column;
+  overflow:hidden;
+  min-width:320px; min-height:200px;
+}
+.window.minimized { display:none; }
+.window.maximized {
+  left:0 !important; top:0 !important;
+  width:100% !important; height:calc(100% ) !important;
+  border-radius:0 !important;
+}
+.window.snapping { transition:all 0.15s ease !important; }
+.window.focused { border-color:rgba(0,120,212,0.4); box-shadow:0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(0,120,212,0.2); }
+
+.win-titlebar {
+  display:flex; align-items:center; gap:10px;
+  padding:0 14px; height:40px;
+  background:rgba(255,255,255,0.04);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0; cursor:default;
+}
+.win-titlebar-icon { font-size:16px; flex-shrink:0; }
+.win-title { font-size:13px; font-weight:500; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text2); }
+.window.focused .win-title { color:var(--text); }
+.win-controls { display:flex; gap:6px; flex-shrink:0; }
+.win-btn {
+  width:14px; height:14px; border-radius:50%;
+  border:none; cursor:pointer; transition:filter 0.15s;
+}
+.win-btn-close { background:#ff5f57; }
+.win-btn-min { background:#ffbd2e; }
+.win-btn-max { background:#28c840; }
+.win-btn:hover { filter:brightness(1.2); }
+.win-content { flex:1; overflow:auto; }
+
+/* Resize handles */
+.win-resize { position:absolute; }
+.win-resize-se { right:0; bottom:0; width:16px; height:16px; cursor:se-resize; }
+.win-resize-s { bottom:0; left:16px; right:16px; height:6px; cursor:s-resize; }
+.win-resize-e { right:0; top:40px; bottom:6px; width:6px; cursor:e-resize; }
+
+/* Snap preview */
+#snap-preview {
+  position:fixed; display:none;
+  background:rgba(0,120,212,0.15);
+  border:2px solid rgba(0,120,212,0.4);
+  border-radius:8px; pointer-events:none;
+  z-index:9990; transition:all 0.08s;
+}
+
+/* ===== NOTIFICATIONS ===== */
+#notifications {
+  position:fixed; top:16px; right:16px;
+  display:flex; flex-direction:column; gap:8px;
+  z-index:8000; pointer-events:none;
+}
+.notif {
+  background:var(--acrylic);
+  backdrop-filter:blur(20px);
+  border:1px solid var(--border2);
+  border-radius:var(--radius2);
+  padding:12px 16px;
+  display:flex; gap:10px; align-items:flex-start;
+  box-shadow:var(--shadow);
+  animation:notifIn 0.25s ease;
+  pointer-events:auto;
+  max-width:320px;
+}
+@keyframes notifIn { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
+.notif-icon { font-size:20px; flex-shrink:0; }
+.notif-body { flex:1; }
+.notif-title { font-size:13px; font-weight:600; }
+.notif-msg { font-size:12px; color:var(--text2); margin-top:2px; }
+
+/* ===== TERMINAL (Termux style) ===== */
+.terminal-wrap { display:flex; flex-direction:column; height:100%; background:#0d0d0d; }
+.terminal-tabs { display:flex; align-items:center; background:#1a1a1a; border-bottom:1px solid #333; padding:4px 4px 0; gap:2px; flex-shrink:0; }
+.term-tab {
+  display:flex; align-items:center; gap:6px;
+  padding:5px 12px; border-radius:6px 6px 0 0;
+  font-size:12px; cursor:pointer; color:#888;
+  background:transparent; transition:all 0.15s;
+}
+.term-tab.active { background:#0d0d0d; color:#e8e8f0; }
+.term-tab-close { color:#555; margin-left:4px; transition:color 0.1s; }
+.term-tab-close:hover { color:#ff6b6b; }
+.term-new-tab { padding:5px 10px; font-size:16px; color:#555; cursor:pointer; border-radius:4px; transition:all 0.15s; }
+.term-new-tab:hover { color:#e8e8f0; background:#333; }
+.terminal-output {
+  flex:1; overflow-y:auto; overflow-x:hidden;
+  padding:10px 14px; font-family:var(--font-mono);
+  font-size:13px; line-height:1.7;
+  color:#e8e8f0;
+  scrollbar-width:thin; scrollbar-color:#333 transparent;
+}
+.terminal-output div { word-break:break-all; }
+.term-input-row {
+  display:flex; align-items:center;
+  padding:8px 14px; background:#0d0d0d;
+  border-top:1px solid #1e1e1e;
+  font-family:var(--font-mono); font-size:13px;
+  flex-shrink:0;
+}
+.term-prompt { color:#3ecf8e; font-weight:600; }
+.term-at { color:#888; }
+.term-host { color:#2ea8ff; }
+.term-dollar { color:#888; }
+.term-path { color:#9b72cf; }
+.term-input {
+  flex:1; background:transparent; border:none; outline:none;
+  color:#e8e8f0; font-family:var(--font-mono); font-size:13px;
+  caret-color:#e8e8f0;
+}
+/* Terminal color classes */
+.t-green { color:#3ecf8e; } .t-red { color:#ff6b6b; } .t-blue { color:#2ea8ff; }
+.t-yellow { color:#ffd93d; } .t-cyan { color:#57c7ff; } .t-purple { color:#9b72cf; }
+.t-dim { color:#555; } .t-white { color:#e8e8f0; } .t-bold { font-weight:700; }
+
+/* ===== BROWSER ===== */
+.browser-wrap { display:flex; flex-direction:column; height:100%; }
+.browser-toolbar {
+  display:flex; align-items:center; gap:4px;
+  padding:8px 10px; background:var(--surface);
+  border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.browser-nav-btn {
+  width:30px; height:30px; border-radius:6px;
+  background:transparent; border:1px solid var(--border);
+  color:var(--text2); cursor:pointer; font-size:14px;
+  transition:all 0.15s; display:flex; align-items:center; justify-content:center;
+}
+.browser-nav-btn:hover:not(:disabled) { background:var(--surface2); color:var(--text); }
+.browser-nav-btn:disabled { opacity:0.35; cursor:not-allowed; }
+.browser-url {
+  flex:1; padding:6px 12px;
+  background:rgba(255,255,255,0.06);
+  border:1px solid var(--border);
+  border-radius:20px; color:var(--text);
+  font-size:13px; outline:none;
+}
+.browser-url:focus { border-color:var(--accent); background:rgba(255,255,255,0.09); }
+.browser-bookmarks {
+  display:flex; gap:4px; padding:6px 10px;
+  background:rgba(0,0,0,0.2);
+  border-bottom:1px solid var(--border);
+  flex-wrap:wrap; flex-shrink:0;
+}
+.bm-btn {
+  padding:4px 10px; border-radius:6px; font-size:12px;
+  color:var(--text2); cursor:pointer; transition:all 0.15s;
+  white-space:nowrap;
+}
+.bm-btn:hover { background:var(--surface2); color:var(--text); }
+.browser-content {
+  flex:1; overflow:auto; padding:0;
+  background:#fff; color:#000;
+}
+.browser-content iframe { width:100%; height:100%; border:none; }
+.browser-page { padding:20px; font-size:14px; color:#333; max-width:800px; margin:0 auto; }
+.browser-page h1 { font-size:20px; margin-bottom:16px; color:#111; }
+.browser-page h2 { font-size:15px; margin:16px 0 8px; color:#333; }
+.browser-page table { border-collapse:collapse; width:100%; font-size:13px; }
+.browser-page th { background:#f0f0f0; padding:8px; text-align:left; border:1px solid #ddd; }
+.browser-page td { padding:8px; border:1px solid #ddd; }
+.browser-page a { color:#0078d4; cursor:pointer; }
+.browser-loading {
+  display:flex; align-items:center; justify-content:center;
+  height:100%; background:#f8f8f8; color:#666;
+  flex-direction:column; gap:12px; font-size:14px;
+}
+
+/* ===== FILE MANAGER ===== */
+.fm-wrap { display:flex; height:100%; }
+.fm-sidebar {
+  width:180px; flex-shrink:0;
+  background:rgba(0,0,0,0.2);
+  border-right:1px solid var(--border);
+  padding:12px 8px;
+  overflow-y:auto;
+}
+.fm-sidebar-section { font-size:10px; color:var(--text-muted); padding:4px 8px; margin-bottom:2px; letter-spacing:1px; text-transform:uppercase; }
+.fm-sidebar-item {
+  display:flex; align-items:center; gap:8px;
+  padding:7px 10px; border-radius:6px;
+  cursor:pointer; font-size:13px; color:var(--text2);
+  transition:all 0.15s;
+}
+.fm-sidebar-item:hover { background:var(--surface2); color:var(--text); }
+.fm-sidebar-item.active { background:rgba(0,120,212,0.2); color:#2ea8ff; }
+.fm-main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.fm-toolbar {
+  display:flex; align-items:center; gap:6px;
+  padding:8px 12px; border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.fm-path { font-size:12px; color:var(--text-muted); font-family:var(--font-mono); flex:1; }
+.fm-btn {
+  padding:5px 10px; border-radius:6px;
+  background:var(--surface); border:1px solid var(--border);
+  color:var(--text2); font-size:12px; cursor:pointer;
+  transition:all 0.15s;
+}
+.fm-btn:hover { background:var(--surface2); color:var(--text); }
+.fm-content { flex:1; overflow:auto; padding:12px; }
+.fm-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(90px,1fr)); gap:8px; }
+.fm-item {
+  display:flex; flex-direction:column; align-items:center;
+  padding:10px 6px; border-radius:8px;
+  cursor:pointer; text-align:center;
+  transition:background 0.15s;
+}
+.fm-item:hover { background:var(--surface2); }
+.fm-item.selected { background:rgba(0,120,212,0.25); }
+.fm-item-icon { font-size:32px; }
+.fm-item-name { font-size:11px; color:var(--text); margin-top:6px; word-break:break-all; line-height:1.3; }
+
+/* ===== TEXT EDITOR ===== */
+.editor-wrap { display:flex; flex-direction:column; height:100%; }
+.editor-toolbar {
+  display:flex; align-items:center; gap:6px;
+  padding:6px 10px; background:var(--surface);
+  border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.editor-filename { font-size:13px; color:var(--text2); flex:1; }
+.editor-textarea {
+  flex:1; resize:none; background:#1a1a2e;
+  color:var(--text); font-family:var(--font-mono);
+  font-size:13px; line-height:1.7;
+  border:none; outline:none; padding:14px 16px;
+  tab-size:2;
+}
+.editor-statusbar {
+  display:flex; align-items:center; gap:16px;
+  padding:4px 12px;
+  background:var(--accent); color:#fff;
+  font-size:11px; flex-shrink:0;
+}
+
+/* ===== CALCULATOR ===== */
+.calc-wrap { display:flex; flex-direction:column; height:100%; background:#1a1a2e; }
+.calc-display { padding:20px 20px 10px; text-align:right; }
+.calc-expr { font-size:14px; color:var(--text-muted); min-height:20px; font-family:var(--font-mono); }
+.calc-result { font-size:48px; font-weight:200; color:var(--text); font-family:var(--font-mono); margin-top:4px; overflow:hidden; text-overflow:ellipsis; }
+.calc-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--border); flex:1; }
+.calc-btn {
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px; cursor:pointer; border:none;
+  transition:filter 0.1s; font-family:var(--font);
+}
+.calc-btn:active { filter:brightness(1.3); }
+.calc-btn-num { background:#2a2a3e; color:var(--text); }
+.calc-btn-func { background:#333348; color:var(--text2); }
+.calc-btn-op { background:#0063b1; color:#fff; }
+.calc-btn-eq { background:var(--accent); color:#fff; }
+.calc-btn-zero { grid-column:span 2; }
+
+/* ===== SYSTEM MONITOR ===== */
+.sysmon-wrap { display:flex; flex-direction:column; height:100%; }
+.sysmon-tabs { display:flex; gap:2px; padding:10px 12px 0; flex-shrink:0; border-bottom:1px solid var(--border); }
+.sysmon-tab { padding:8px 16px; border-radius:8px 8px 0 0; font-size:13px; cursor:pointer; color:var(--text2); transition:all 0.15s; }
+.sysmon-tab.active { background:var(--surface2); color:var(--text); }
+.sysmon-content { flex:1; overflow:auto; padding:16px; }
+.sysmon-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
+.sysmon-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px; }
+.sysmon-card-title { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+.sysmon-value { font-size:28px; font-weight:600; font-family:var(--font-mono); }
+.sysmon-value span { font-size:13px; color:var(--text-muted); font-weight:400; margin-left:4px; }
+.sysmon-bar-wrap { height:6px; background:rgba(255,255,255,0.08); border-radius:3px; margin-top:10px; overflow:hidden; }
+.sysmon-bar { height:100%; border-radius:3px; transition:width 0.5s; }
+.bar-cpu { background:linear-gradient(90deg,#0078d4,#2ea8ff); }
+.bar-mem { background:linear-gradient(90deg,#9b72cf,#e040fb); }
+.bar-disk { background:linear-gradient(90deg,#3ecf8e,#2ea8ff); }
+.bar-net { background:linear-gradient(90deg,#ffd93d,#ff6b6b); }
+.proc-table { width:100%; border-collapse:collapse; font-size:12px; font-family:var(--font-mono); }
+.proc-table th { padding:8px; text-align:left; color:var(--text-muted); border-bottom:1px solid var(--border); font-size:11px; }
+.proc-table td { padding:8px; border-bottom:1px solid rgba(255,255,255,0.04); }
+.proc-table tr:hover td { background:var(--surface); }
+
+/* ===== SETTINGS ===== */
+.settings-wrap { display:flex; height:100%; }
+.settings-sidebar { width:200px; flex-shrink:0; background:rgba(0,0,0,0.2); border-right:1px solid var(--border); padding:12px 8px; }
+.settings-nav-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:8px; cursor:pointer; font-size:13px; color:var(--text2); transition:all 0.15s; }
+.settings-nav-item:hover { background:var(--surface2); color:var(--text); }
+.settings-nav-item.active { background:rgba(0,120,212,0.2); color:#2ea8ff; }
+.settings-main { flex:1; overflow:auto; padding:24px; }
+.settings-section-title { font-size:20px; font-weight:600; margin-bottom:20px; }
+.settings-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:16px; }
+.settings-row { display:flex; align-items:center; padding:14px 16px; border-bottom:1px solid var(--border); gap:12px; }
+.settings-row:last-child { border-bottom:none; }
+.settings-row-icon { font-size:20px; flex-shrink:0; }
+.settings-row-info { flex:1; }
+.settings-row-title { font-size:14px; }
+.settings-row-sub { font-size:12px; color:var(--text-muted); margin-top:2px; }
+.settings-toggle { width:44px; height:24px; background:var(--border); border-radius:12px; cursor:pointer; position:relative; transition:background 0.2s; flex-shrink:0; }
+.settings-toggle.on { background:var(--accent); }
+.settings-toggle::after { content:''; position:absolute; width:20px; height:20px; background:#fff; border-radius:50%; top:2px; left:2px; transition:left 0.2s; box-shadow:0 2px 4px rgba(0,0,0,0.3); }
+.settings-toggle.on::after { left:22px; }
+.settings-select { background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); padding:6px 10px; font-size:13px; cursor:pointer; outline:none; }
+
+/* ===== PACKAGE MANAGER ===== */
+.pkg-wrap { display:flex; flex-direction:column; height:100%; }
+.pkg-header { padding:12px; border-bottom:1px solid var(--border); flex-shrink:0; }
+.pkg-tabs { display:flex; gap:4px; margin-bottom:10px; flex-wrap:wrap; }
+.pkg-tab { padding:6px 12px; border-radius:20px; font-size:12px; cursor:pointer; background:var(--surface); border:1px solid var(--border); color:var(--text2); transition:all 0.15s; }
+.pkg-tab.active { background:rgba(0,120,212,0.25); border-color:rgba(0,120,212,0.5); color:#2ea8ff; }
+.pkg-search-row { display:flex; gap:8px; }
+.pkg-search { flex:1; padding:8px 12px; background:var(--surface); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; }
+.pkg-search:focus { border-color:var(--accent); }
+.pkg-list { flex:1; overflow:auto; }
+.pkg-item { display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid var(--border); }
+.pkg-icon { font-size:28px; flex-shrink:0; }
+.pkg-info { flex:1; min-width:0; }
+.pkg-name { font-size:14px; font-weight:600; }
+.pkg-desc { font-size:12px; color:var(--text2); margin-top:2px; }
+.pkg-meta { font-size:11px; color:var(--text-muted); margin-top:2px; }
+.pkg-action { padding:7px 14px; border-radius:6px; font-size:12px; border:none; cursor:pointer; transition:all 0.15s; white-space:nowrap; }
+.pkg-install { background:var(--accent); color:#fff; }
+.pkg-install:hover { background:#1a8fe3; }
+.pkg-installed { background:var(--surface2); color:var(--red); border:1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<!-- Boot Screen -->
+<div id="boot-screen">
+  <div class="boot-logo-wrap">
+    <div class="boot-kapilogo">🦔</div>
+    <div class="boot-osname"><span>kapibara</span> OS</div>
+    <div class="boot-sub-text">Linux 6.1.63 · WebAssembly Edition</div>
+  </div>
+  <div id="boot-log"></div>
+  <div id="boot-progress-wrap">
+    <div id="boot-progress-bar"></div>
+  </div>
+</div>
+
+<!-- Login Screen -->
+<div id="login-screen">
+  <canvas id="login-particles"></canvas>
+  <div id="login-box">
+    <div class="login-avatar">🦔</div>
+    <div class="login-user">tkhr</div>
+    <div class="login-sub">kapibara OS · Administrator</div>
+    <input type="password" id="login-password" placeholder="パスワードを入力" autocomplete="current-password" />
+    <div class="login-error" id="login-error">❌ パスワードが違います</div>
+    <button id="login-btn" onclick="doLogin()">→ ログイン</button>
+    <div class="login-hint">パスワードを入力してEnterまたはボタンを押す</div>
+  </div>
+  <div id="login-clock">
+    <div class="lc-time" id="lc-time">--:--</div>
+    <div class="lc-date" id="lc-date">----年--月--日</div>
+  </div>
+</div>
+
+<!-- Desktop -->
+<div id="desktop">
+  <canvas id="wallpaper-canvas"></canvas>
+
+  <div id="desktop-icons">
+    <div class="desk-icon" onclick="openApp('terminal')">
+      <div class="desk-icon-img">💻</div>
+      <div class="desk-icon-label">ターミナル</div>
+    </div>
+    <div class="desk-icon" onclick="openApp('filemanager')">
+      <div class="desk-icon-img">📁</div>
+      <div class="desk-icon-label">ファイル</div>
+    </div>
+    <div class="desk-icon" onclick="openApp('texteditor')">
+      <div class="desk-icon-img">📝</div>
+      <div class="desk-icon-label">エディタ</div>
+    </div>
+    <div class="desk-icon" onclick="openApp('browser')">
+      <div class="desk-icon-img">🌐</div>
+      <div class="desk-icon-label">ブラウザ</div>
+    </div>
+    <div class="desk-icon" onclick="openApp('settings')">
+      <div class="desk-icon-img">⚙️</div>
+      <div class="desk-icon-label">設定</div>
+    </div>
+    <div class="desk-icon" onclick="openApp('calculator')">
+      <div class="desk-icon-img">🔢</div>
+      <div class="desk-icon-label">電卓</div>
+    </div>
+    <div class="desk-icon" onclick="openApp('packagemanager')">
+      <div class="desk-icon-img">📦</div>
+      <div class="desk-icon-label">パッケージ</div>
+    </div>
+    <div class="desk-icon" onclick="openApp('systemmonitor')">
+      <div class="desk-icon-img">📊</div>
+      <div class="desk-icon-label">システム</div>
+    </div>
+  </div>
+
+  <div id="context-menu">
+    <div class="ctx-item" onclick="openApp('terminal')">💻 ターミナルを開く</div>
+    <div class="ctx-item" onclick="openApp('filemanager')">📁 ファイルマネージャ</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" onclick="changeWallpaper()">🎨 壁紙を変更</div>
+    <div class="ctx-item" onclick="openApp('settings')">⚙️ 設定</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" onclick="ctx_refresh()">🔄 更新</div>
+  </div>
+
+  <div id="windows-container"></div>
+
+  <div id="taskbar">
+    <div id="taskbar-start" onclick="toggleStartMenu()">
+      <span class="ts-icon">🦔</span>
+      <span>kapibara OS</span>
+    </div>
+    <div class="taskbar-sep"></div>
+    <div id="taskbar-apps"></div>
+    <div id="taskbar-tray">
+      <div class="tray-item" title="ネットワーク">📶</div>
+      <div class="tray-item" title="音量">🔊</div>
+      <div id="tray-clock"></div>
+    </div>
+  </div>
+
+  <div id="start-menu">
+    <div id="start-header">
+      <div class="start-avatar">🦔</div>
+      <div>
+        <div class="start-user">tkhr</div>
+        <div class="start-sub">kapibara OS · Administrator</div>
+      </div>
+    </div>
+    <div id="start-search-wrap">
+      <input type="text" id="start-search" placeholder="アプリを検索..." oninput="filterStartApps(this.value)" />
+    </div>
+    <div id="start-apps">
+      <div class="start-app" onclick="openApp('terminal');toggleStartMenu()"><span class="start-app-icon">💻</span><span>ターミナル</span></div>
+      <div class="start-app" onclick="openApp('filemanager');toggleStartMenu()"><span class="start-app-icon">📁</span><span>ファイルマネージャ</span></div>
+      <div class="start-app" onclick="openApp('texteditor');toggleStartMenu()"><span class="start-app-icon">📝</span><span>テキストエディタ</span></div>
+      <div class="start-app" onclick="openApp('browser');toggleStartMenu()"><span class="start-app-icon">🌐</span><span>ウェブブラウザ</span></div>
+      <div class="start-app" onclick="openApp('calculator');toggleStartMenu()"><span class="start-app-icon">🔢</span><span>電卓</span></div>
+      <div class="start-app" onclick="openApp('packagemanager');toggleStartMenu()"><span class="start-app-icon">📦</span><span>パッケージ管理</span></div>
+      <div class="start-app" onclick="openApp('systemmonitor');toggleStartMenu()"><span class="start-app-icon">📊</span><span>システム監視</span></div>
+      <div class="start-app" onclick="openApp('settings');toggleStartMenu()"><span class="start-app-icon">⚙️</span><span>設定</span></div>
+    </div>
+    <div id="start-footer">
+      <button onclick="lockScreen()">🔒 ロック</button>
+      <button onclick="rebootOS()">🔄 再起動</button>
+      <button onclick="shutdownOS()">⏻ シャットダウン</button>
+    </div>
+  </div>
+</div>
+
+<div id="notifications"></div>
+
+<script>
+// ===== VIRTUAL FILESYSTEM =====
+const VFS = {
+  tree: {
+    '/': { type:'dir', children:['bin','dev','etc','home','proc','root','tmp','usr','var'] },
+    '/bin': { type:'dir', children:['ash','ls','cat','echo','pwd','mkdir','rm','cp','mv','grep','find','sort','wc','head','tail'] },
+    '/usr': { type:'dir', children:['bin','lib','local'] },
+    '/usr/bin': { type:'dir', children:['python3','node','npm','vim','nano','wget','curl','git'] },
+    '/usr/local': { type:'dir', children:['bin','lib'] },
+    '/usr/local/bin': { type:'dir', children:[] },
+    '/dev': { type:'dir', children:['null','tty'] },
+    '/dev/null': { type:'file', content:'' },
+    '/etc': { type:'dir', children:['os-release','hostname','hosts','passwd','motd','profile','shells'] },
+    '/etc/os-release': { type:'file', content:`NAME="kapibara OS"\nVERSION_ID=1.0\nPRETTY_NAME="kapibara OS 1.0 (Alpine Linux base)"\nHOME_URL="https://example.com"` },
+    '/etc/hostname': { type:'file', content:'kapibaraos' },
+    '/etc/hosts': { type:'file', content:`127.0.0.1\tlocalhost\n::1\t\t\tlocalhost\n127.0.0.1\tkapibaraos.local` },
+    '/etc/motd': { type:'file', content:`\nWelcome to kapibara OS!\nPowered by Linux · WebAssembly\n` },
+    '/etc/passwd': { type:'file', content:`root:x:0:0:root:/root:/bin/ash\ntkhr:x:1000:1000:kapibara OS User:/home/tkhr:/bin/ash` },
+    '/etc/shells': { type:'file', content:`/bin/ash\n/bin/bash` },
+    '/proc': { type:'dir', children:['cpuinfo','meminfo','version','uptime','loadavg'] },
+    '/proc/version': { type:'file', content:'Linux version 6.1.63 (kapibaraos@build) (gcc 12.2.1) #1 SMP' },
+    '/proc/uptime': { type:'file', get content(){ return (performance.now()/1000).toFixed(2)+' '+(performance.now()/2000).toFixed(2); } },
+    '/proc/loadavg': { type:'file', get content(){ return `${(Math.random()*0.5).toFixed(2)} ${(Math.random()*0.3).toFixed(2)} ${(Math.random()*0.2).toFixed(2)} 1/42 ${Math.floor(Math.random()*200)+100}`; } },
+    '/proc/cpuinfo': { type:'file', content:`processor\t: 0\nvendor_id\t: WebAssembly\nmodel name\t: kapibara OS CPU (WASM)\ncpu MHz\t\t: 1200.000` },
+    '/proc/meminfo': { type:'file', get content(){ const f=89234-Math.floor(Math.random()*5000); return `MemTotal:\t\t131072 kB\nMemFree:\t\t${f} kB\nMemAvailable:\t\t${f+8000} kB`; } },
+    '/root': { type:'dir', children:['welcome.txt','start.sh','projects','.bashrc'] },
+    '/root/.bashrc': { type:'file', content:`# ~/.bashrc — kapibara OS\nexport PATH="$PATH:/usr/local/bin"\nexport EDITOR=nano\nalias ll='ls -la'\nalias la='ls -A'\nalias ..='cd ..'\nalias grep='grep --color=auto'` },
+    '/root/welcome.txt': { type:'file', content:`Welcome to kapibara OS!
+=======================
+Powered by Linux + WebAssembly
+
+Quick start:
+  help           — コマンド一覧
+  node -e "..."  — Node.js実行
+  python3 -c "..." — Python実行
+  neofetch       — システム情報
+
+ターミナルからRenderサーバーに接続:
+  run-server     — サーバー接続確認
+  node app.js    — Node.jsアプリ実行(Render経由)
+` },
+    '/root/start.sh': { type:'file', content:`#!/bin/ash\n# kapibara OS startup script\necho "kapibara OS started!"\necho "Kernel: $(uname -r)"\necho "User: $(whoami)"` },
+    '/root/projects': { type:'dir', children:['nexuschat','kapibaratube','scripts'] },
+    '/root/projects/nexuschat': { type:'dir', children:['server.js','package.json','README.md'] },
+    '/root/projects/nexuschat/server.js': { type:'file', content:`const express = require('express');\nconst http = require('http');\nconst WebSocket = require('ws');\nconst app = express();\n\nconst server = http.createServer(app);\nconst wss = new WebSocket.Server({ server });\n\nwss.on('connection', (ws) => {\n  console.log('New connection');\n  ws.on('message', (msg) => {\n    wss.clients.forEach(c => c.readyState === WebSocket.OPEN && c.send(msg));\n  });\n});\n\nserver.listen(process.env.PORT || 3000, () => {\n  console.log('NexusChat running on port 3000');\n});` },
+    '/root/projects/nexuschat/package.json': { type:'file', content:`{\n  "name": "nexuschat",\n  "version": "1.0.0",\n  "main": "server.js",\n  "dependencies": {\n    "express": "^4.18.0",\n    "ws": "^8.14.0"\n  }\n}` },
+    '/root/projects/nexuschat/README.md': { type:'file', content:`# NexusChat\nDiscord-like anonymous chat\n\n## Install\n\`\`\`\nnpm install\nnode server.js\n\`\`\`` },
+    '/root/projects/kapibaratube': { type:'dir', children:['app.py','requirements.txt'] },
+    '/root/projects/kapibaratube/app.py': { type:'file', content:`from fastapi import FastAPI\nimport httpx\n\napp = FastAPI()\nINVIDIOUS = "https://invidious.snopyta.org"\n\n@app.get("/search")\nasync def search(q: str):\n    async with httpx.AsyncClient() as c:\n        r = await c.get(f"{INVIDIOUS}/api/v1/search", params={"q": q})\n        return r.json()` },
+    '/root/projects/kapibaratube/requirements.txt': { type:'file', content:`fastapi\nuvicorn\nhttpx` },
+    '/root/projects/scripts': { type:'dir', children:['backup.sh','deploy.sh'] },
+    '/root/projects/scripts/backup.sh': { type:'file', content:`#!/bin/ash\nDATE=$(date +%Y%m%d)\necho "Backup started: $DATE"\ntar -czf /tmp/backup-$DATE.tar.gz /root/projects\necho "Done!"` },
+    '/root/projects/scripts/deploy.sh': { type:'file', content:`#!/bin/ash\necho "Deploying to Render..."\n# Add your deploy commands here\ngit push render main` },
+    '/home': { type:'dir', children:['tkhr'] },
+    '/home/tkhr': { type:'dir', children:['.bashrc','Documents','Downloads'] },
+    '/home/tkhr/.bashrc': { type:'file', content:`# ~/.bashrc\nexport PATH="$HOME/.local/bin:$PATH"\nalias ll='ls -la'` },
+    '/home/tkhr/Documents': { type:'dir', children:['notes.md'] },
+    '/home/tkhr/Documents/notes.md': { type:'file', content:`# メモ\n\n## プロジェクト\n- NexusChat - チャットアプリ\n- カピバラチューブ - 動画サイト\n- kapibara OS - このOS\n\n## TODO\n- [ ] v86でAlpine ISO動かす\n- [x] kapibara OS制作\n` },
+    '/home/tkhr/Downloads': { type:'dir', children:[] },
+    '/tmp': { type:'dir', children:[] },
+    '/var': { type:'dir', children:['log','tmp'] },
+    '/var/log': { type:'dir', children:['messages','dmesg'] },
+    '/var/log/messages': { type:'file', content:`Nov  8 10:00:00 kapibaraos kernel: kapibara OS booting\nNov  8 10:00:01 kapibaraos syslogd: started\nNov  8 10:00:04 kapibaraos login: tkhr logged in` },
+    '/var/log/dmesg': { type:'file', content:`[    0.000000] Linux version 6.1.63\n[    0.000000] kapibara OS boot\n[    0.512000] EXT4-fs mounted\n[    1.024000] boot complete` },
+    '/var/tmp': { type:'dir', children:[] },
+  },
+  installedPkgs: new Set(['alpine-base','musl','busybox']),
+  resolvePath(path, cwd='/root'){
+    if(!path)return cwd;
+    if(path==='~'||path==='')return '/root';
+    if(path.startsWith('~/'))path='/root/'+path.slice(2);
+    if(!path.startsWith('/'))path=cwd+'/'+path;
+    const parts=path.split('/').filter(Boolean);const resolved=[];
+    for(const p of parts){if(p==='.')continue;if(p==='..')resolved.pop();else resolved.push(p);}
+    return '/'+resolved.join('/');
+  },
+  get(p){return this.tree[p]||null;},
+  ls(p){const n=this.tree[p];return n&&n.type==='dir'?n.children:null;},
+  cat(p){const n=this.tree[p];return n&&n.type==='file'?n.content:null;},
+  mkdir(p){
+    if(this.tree[p])return false;
+    this.tree[p]={type:'dir',children:[]};
+    const par=p.substring(0,p.lastIndexOf('/'))||'/';
+    const nm=p.substring(p.lastIndexOf('/')+1);
+    if(this.tree[par]&&!this.tree[par].children.includes(nm))this.tree[par].children.push(nm);
+    return true;
+  },
+  touch(p,content=''){
+    const par=p.substring(0,p.lastIndexOf('/'))||'/';
+    const nm=p.substring(p.lastIndexOf('/')+1);
+    this.tree[p]={type:'file',content};
+    if(this.tree[par]&&!this.tree[par].children.includes(nm))this.tree[par].children.push(nm);
+  },
+  write(p,c){if(this.tree[p]){this.tree[p].content=c;return;}this.touch(p,c);},
+  rm(p,recursive=false){
+    const n=this.tree[p];if(!n)return false;
+    if(n.type==='dir'&&recursive)for(const c of[...n.children])this.rm(p+'/'+c,true);
+    else if(n.type==='dir')return false;
+    delete this.tree[p];
+    const par=p.substring(0,p.lastIndexOf('/'))||'/';
+    const nm=p.substring(p.lastIndexOf('/')+1);
+    if(this.tree[par])this.tree[par].children=this.tree[par].children.filter(c=>c!==nm);
+    return true;
+  },
+  cp(src,dst){const n=this.tree[src];if(!n||n.type!=='file')return false;this.touch(dst,n.content);return true;},
+  mv(src,dst){if(!this.cp(src,dst))return false;this.rm(src);return true;},
+  exists(p){return!!this.tree[p];},
+  isDir(p){return!!(this.tree[p]&&this.tree[p].type==='dir');},
+  isFile(p){return!!(this.tree[p]&&this.tree[p].type==='file');},
+  getIcon(p){
+    const n=this.tree[p];if(!n)return'❓';if(n.type==='dir')return'📁';
+    const ext=p.split('.').pop().toLowerCase();
+    const m={'txt':'📄','md':'📝','sh':'⚡','py':'🐍','js':'📜','ts':'📘','html':'🌐','css':'🎨','json':'📋','log':'📃','conf':'⚙️','jpg':'🖼️','png':'🖼️','svg':'🖼️','mp3':'🎵','mp4':'🎬','zip':'📦'};
+    return m[ext]||'📄';
+  }
+};
+window.VFS=VFS;
+</script>
+<script>
+// ===== WINDOW MANAGER =====
+const WM={
+  windows:{},zCounter:10,focusedId:null,
+  create(opts){
+    const id='win-'+Date.now()+'-'+Math.random().toString(36).slice(2,6);
+    const container=document.getElementById('windows-container');
+    const offset=Object.keys(this.windows).length*28;
+    const x=opts.x??(80+offset%200),y=opts.y??(60+offset%150);
+    const w=opts.w??720,h=opts.h??480;
+    const win=document.createElement('div');
+    win.className='window';win.id=id;
+    win.style.cssText=`left:${x}px;top:${y}px;width:${w}px;height:${h}px;z-index:${++this.zCounter}`;
+    win.innerHTML=`
+      <div class="win-titlebar" data-win-id="${id}">
+        <span class="win-titlebar-icon">${opts.icon||'🪟'}</span>
+        <span class="win-title">${opts.title||'Untitled'}</span>
+        <div class="win-controls">
+          <button class="win-btn win-btn-min" onclick="WM.minimize('${id}')"></button>
+          <button class="win-btn win-btn-max" onclick="WM.toggleMax('${id}')"></button>
+          <button class="win-btn win-btn-close" onclick="WM.close('${id}')"></button>
+        </div>
+      </div>
+      <div class="win-content" id="${id}-content"></div>
+      <div class="win-resize win-resize-se" data-win-id="${id}" data-dir="se"></div>
+      <div class="win-resize win-resize-s" data-win-id="${id}" data-dir="s"></div>
+      <div class="win-resize win-resize-e" data-win-id="${id}" data-dir="e"></div>`;
+    container.appendChild(win);
+    if(!document.getElementById('snap-preview')){
+      const sp=document.createElement('div');sp.id='snap-preview';document.body.appendChild(sp);
+    }
+    this.windows[id]={id,title:opts.title,icon:opts.icon,minimized:false,maximized:false,prevRect:null};
+    this.focus(id);this.makeDraggable(win);this.makeResizable(win);this.addTaskbarBtn(id,opts.icon,opts.title);
+    win.style.transform='scale(0.92)';win.style.opacity='0';win.style.transition='transform 0.15s ease,opacity 0.15s ease';
+    requestAnimationFrame(()=>{win.style.transform='scale(1)';win.style.opacity='1';setTimeout(()=>{win.style.transition='';},160);});
+    return id;
+  },
+  focus(id){
+    if(this.focusedId){const p=document.getElementById(this.focusedId);if(p)p.classList.remove('focused');const pb=document.querySelector(`.taskbar-btn[data-win="${this.focusedId}"]`);if(pb)pb.classList.remove('active');}
+    const win=document.getElementById(id);if(!win)return;
+    win.style.zIndex=++this.zCounter;win.classList.add('focused');this.focusedId=id;
+    const btn=document.querySelector(`.taskbar-btn[data-win="${id}"]`);if(btn)btn.classList.add('active');
+  },
+  close(id){
+    const win=document.getElementById(id);if(!win)return;
+    win.style.transition='transform 0.12s ease,opacity 0.12s ease';
+    win.style.transform='scale(0.88)';win.style.opacity='0';
+    setTimeout(()=>{win.remove();},130);
+    delete this.windows[id];this.removeTaskbarBtn(id);
+    if(this.focusedId===id)this.focusedId=null;
+  },
+  minimize(id){
+    const win=document.getElementById(id);if(!win)return;
+    const s=this.windows[id];s.minimized=!s.minimized;
+    win.classList.toggle('minimized',s.minimized);
+    const btn=document.querySelector(`.taskbar-btn[data-win="${id}"]`);if(btn)btn.classList.toggle('minimized',s.minimized);
+    if(!s.minimized)this.focus(id);
+  },
+  toggleMax(id){
+    const win=document.getElementById(id);const s=this.windows[id];
+    if(!s.maximized){s.prevRect={left:win.style.left,top:win.style.top,width:win.style.width,height:win.style.height};win.classList.add('maximized');s.maximized=true;}
+    else{win.classList.remove('maximized');if(s.prevRect)Object.assign(win.style,s.prevRect);s.maximized=false;}
+    win.classList.add('snapping');setTimeout(()=>win.classList.remove('snapping'),160);
+  },
+  addTaskbarBtn(id,icon,title){
+    const bar=document.getElementById('taskbar-apps');
+    const btn=document.createElement('div');
+    btn.className='taskbar-btn active';btn.setAttribute('data-win',id);
+    btn.innerHTML=`<span class="taskbar-btn-icon">${icon||'🪟'}</span><span>${title||'Window'}</span>`;
+    btn.addEventListener('click',()=>{
+      const s=this.windows[id];if(!s)return;
+      if(s.minimized)this.minimize(id);
+      else if(this.focusedId===id)this.minimize(id);
+      else this.focus(id);
+    });
+    bar.appendChild(btn);
+  },
+  removeTaskbarBtn(id){const btn=document.querySelector(`.taskbar-btn[data-win="${id}"]`);if(btn)btn.remove();},
+  makeDraggable(win){
+    const tb=win.querySelector('.win-titlebar');
+    let sX,sY,sL,sT,dragging=false;
+    tb.addEventListener('mousedown',e=>{
+      if(e.target.classList.contains('win-btn'))return;
+      const id=win.id;const s=this.windows[id];if(s?.maximized)return;
+      this.focus(id);dragging=true;sX=e.clientX;sY=e.clientY;sL=parseInt(win.style.left)||0;sT=parseInt(win.style.top)||0;
+      win.style.userSelect='none';e.preventDefault();
+    });
+    document.addEventListener('mousemove',e=>{
+      if(!dragging)return;
+      const dx=e.clientX-sX,dy=e.clientY-sY;
+      win.style.left=Math.max(-100,sL+dx)+'px';win.style.top=Math.max(0,sT+dy)+'px';
+      const sp=document.getElementById('snap-preview');if(!sp)return;
+      if(e.clientX<8)sp.style.cssText='display:block;left:0;top:0;width:50%;height:calc(100% - 44px)';
+      else if(e.clientX>window.innerWidth-8)sp.style.cssText='display:block;left:50%;top:0;width:50%;height:calc(100% - 44px)';
+      else if(e.clientY<4)sp.style.cssText='display:block;left:0;top:0;width:100%;height:calc(100% - 44px)';
+      else sp.style.display='none';
+    });
+    document.addEventListener('mouseup',e=>{
+      if(!dragging)return;dragging=false;win.style.userSelect='';
+      const sp=document.getElementById('snap-preview');if(sp)sp.style.display='none';
+      if(e.clientX<8){win.classList.add('snapping');win.style.left='0';win.style.top='0';win.style.width='50%';win.style.height='calc(100% - 44px)';setTimeout(()=>win.classList.remove('snapping'),160);}
+      else if(e.clientX>window.innerWidth-8){win.classList.add('snapping');win.style.left='50%';win.style.top='0';win.style.width='50%';win.style.height='calc(100% - 44px)';setTimeout(()=>win.classList.remove('snapping'),160);}
+      else if(e.clientY<4)this.toggleMax(win.id);
+    });
+    win.addEventListener('mousedown',()=>this.focus(win.id));
+  },
+  makeResizable(win){
+    win.querySelectorAll('.win-resize').forEach(handle=>{
+      let sX,sY,sW,sH;const dir=handle.dataset.dir;
+      handle.addEventListener('mousedown',e=>{
+        e.preventDefault();e.stopPropagation();sX=e.clientX;sY=e.clientY;sW=win.offsetWidth;sH=win.offsetHeight;win.style.userSelect='none';
+        const onMove=e=>{const dx=e.clientX-sX,dy=e.clientY-sY;if(dir==='se'||dir==='e')win.style.width=Math.max(320,sW+dx)+'px';if(dir==='se'||dir==='s')win.style.height=Math.max(200,sH+dy)+'px';};
+        const onUp=()=>{win.style.userSelect='';document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);};
+        document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);
+      });
+    });
+  },
+  getContent(id){return document.getElementById(id+'-content');},
+  setTitle(id,title){const el=document.querySelector(`#${id} .win-title`);if(el)el.textContent=title;const btn=document.querySelector(`.taskbar-btn[data-win="${id}"] span:last-child`);if(btn)btn.textContent=title;if(this.windows[id])this.windows[id].title=title;}
+};
+window.WM=WM;
+</script>
+<script>
+// ===== TERMINAL (Termux style + Render server exec) =====
+// Render server base URL — ここにあなたのRenderサービスURLを入れる
+const RENDER_SERVER = 'https://your-render-service.onrender.com';
+
+const TerminalApp={
+  sessions:{},
+  open(){
+    const id=WM.create({title:'ターミナル',icon:'💻',w:760,h:480});
+    const content=WM.getContent(id);
+    const sessId='sess-'+id;
+    this.sessions[sessId]={cwd:'/root',history:[],histIdx:-1,
+      env:{HOME:'/root',USER:'root',SHELL:'/bin/ash',TERM:'xterm-256color',LANG:'C.UTF-8',PWD:'/root'},
+      aliases:{ll:'ls -la',la:'ls -A',l:'ls -CF','..':'cd ..',grep:'grep --color=auto'},
+      runningPid:null
+    };
+    content.innerHTML=`
+      <div class="terminal-wrap">
+        <div class="terminal-tabs" id="${sessId}-tabs">
+          <div class="term-tab active"><span>ash</span></div>
+          <div class="term-new-tab" onclick="TerminalApp.newTab('${sessId}')">+</div>
+        </div>
+        <div class="terminal-output" id="${sessId}-out"></div>
+        <div class="term-input-row">
+          <span class="term-prompt">root</span><span class="term-at">@</span><span class="term-host">kapibaraos</span><span class="term-dollar">:</span><span class="term-path" id="${sessId}-cwd">~</span><span class="term-dollar"># </span>
+          <input type="text" class="term-input" id="${sessId}-input" autocomplete="off" spellcheck="false" />
+        </div>
+      </div>`;
+    const input=document.getElementById(sessId+'-input');
+    input.addEventListener('keydown',e=>this.handleKey(e,sessId));
+    content.querySelector('.terminal-wrap').addEventListener('click',()=>input.focus());
+    this.print(sessId,`<span class="t-green t-bold">kapibara OS</span> Terminal — <span class="t-dim">ash</span>
+<span class="t-dim">Type '</span><span class="t-cyan">help</span><span class="t-dim">' for commands. Tab補完 ↑↓履歴 Ctrl+C中断</span>
+<span class="t-yellow">★ node/python3コマンドはRenderサーバー経由で本当に実行されます</span>
+`);
+    const motd=VFS.cat('/etc/motd');if(motd)this.print(sessId,`<span class="t-dim">${esc(motd)}</span>`);
+    setTimeout(()=>input.focus(),100);
+  },
+  handleKey(e,sessId){
+    const sess=this.sessions[sessId];const input=document.getElementById(sessId+'-input');
+    if(!sess||!input)return;
+    if(e.key==='Enter'){const cmd=input.value;input.value='';if(cmd.trim()){sess.history.push(cmd);sess.histIdx=sess.history.length;}this.exec(sessId,cmd);}
+    else if(e.key==='ArrowUp'){e.preventDefault();if(sess.histIdx>0){sess.histIdx--;input.value=sess.history[sess.histIdx];}}
+    else if(e.key==='ArrowDown'){e.preventDefault();if(sess.histIdx<sess.history.length-1){sess.histIdx++;input.value=sess.history[sess.histIdx];}else{sess.histIdx=sess.history.length;input.value='';}}
+    else if(e.key==='Tab'){e.preventDefault();this.tabComplete(sessId,input);}
+    else if(e.key==='c'&&e.ctrlKey){const l=input.value;input.value='';this.printRaw(sessId,`<span class="t-green">root@kapibaraos</span>:<span class="t-purple">${esc(this.cwdDisplay(sess.cwd))}</span># ${esc(l)}^C`);}
+    else if(e.key==='l'&&e.ctrlKey){e.preventDefault();document.getElementById(sessId+'-out').innerHTML='';}
+    else if(e.key==='u'&&e.ctrlKey){e.preventDefault();input.value='';}
+  },
+  tabComplete(sessId,input){
+    const sess=this.sessions[sessId];const val=input.value;const parts=val.split(' ');const last=parts[parts.length-1];
+    if(parts.length===1){const cmds=Object.keys(SHELL_COMMANDS);const m=cmds.filter(c=>c.startsWith(last));if(m.length===1){input.value=m[0]+' ';}else if(m.length>1)this.print(sessId,m.join('  '));}
+    else{const pp=last.startsWith('/')?last:sess.cwd+'/'+last;const dp=pp.substring(0,pp.lastIndexOf('/'))||'/';const fp=pp.substring(pp.lastIndexOf('/')+1);const dir=VFS.ls(VFS.resolvePath(dp,sess.cwd));if(dir){const m=dir.filter(f=>f.startsWith(fp));if(m.length===1){const np=(last.includes('/')?last.substring(0,last.lastIndexOf('/')+1):'')+m[0];parts[parts.length-1]=np;input.value=parts.join(' ');const full=VFS.resolvePath(np,sess.cwd);if(VFS.isDir(full))input.value+='/';else input.value+=' ';}else if(m.length>1)this.print(sessId,m.map(f=>VFS.isDir(VFS.resolvePath(f,sess.cwd))?`<span class="t-blue">${f}/</span>`:f).join('  '));}}
+  },
+  cwdDisplay(cwd){return cwd.startsWith('/root')?'~'+cwd.slice(5):cwd;},
+  exec(sessId,raw){
+    const sess=this.sessions[sessId];if(!raw.trim()){return;}
+    let cmd=raw.trim();const fw=cmd.split(' ')[0];if(sess.aliases[fw])cmd=sess.aliases[fw]+cmd.slice(fw.length);
+    this.printRaw(sessId,`<span class="t-green">root@kapibaraos</span>:<span class="t-purple">${esc(this.cwdDisplay(sess.cwd))}</span><span class="t-green">#</span> ${esc(raw)}`);
+    // pipes
+    if(cmd.includes('|')&&!cmd.startsWith('echo')){
+      const[left,right]=cmd.split('|').map(s=>s.trim());const lo=this.runCmd(sessId,left,true);
+      if(right.startsWith('grep ')){const p=right.slice(5).replace(/^["']|["']$/g,'');const re=new RegExp(p,'gi');const lines=lo.split('\n').filter(l=>re.test(l));this.print(sessId,lines.map(l=>esc(l).replace(new RegExp(esc(p),'gi'),s=>`<span class="t-yellow">${s}</span>`)).join('\n'));}
+      else if(right==='wc -l')this.print(sessId,String(lo.split('\n').filter(Boolean).length));
+      else this.print(sessId,esc(lo));return;
+    }
+    // redirects
+    let outR=null,appR=null,cc=cmd;
+    const am=cmd.match(/^(.+?)\s*>>\s*(.+)$/);const rm=cmd.match(/^(.+?)\s*>\s*(.+)$/);
+    if(am){cc=am[1].trim();appR=am[2].trim();}else if(rm){cc=rm[1].trim();outR=rm[2].trim();}
+    const result=this.runCmd(sessId,cc,!!(outR||appR));
+    if(result===null)return;
+    if(outR){VFS.write(VFS.resolvePath(outR,sess.cwd),result);}
+    else if(appR){const p=VFS.resolvePath(appR,sess.cwd);const ex=VFS.cat(p)||'';VFS.write(p,ex+(ex?'\n':'')+result);}
+    else if(result!=='')this.print(sessId,result);
+    this.updateCwd(sessId);
+  },
+  runCmd(sessId,raw,ret=false){
+    const sess=this.sessions[sessId];const parts=this.parseArgs(raw);if(!parts.length)return'';
+    const cmd=parts[0];const args=parts.slice(1);const fn=SHELL_COMMANDS[cmd];
+    if(!fn){
+      if(ret)return`ash: ${cmd}: not found`;
+      const hint=PKG_COMMANDS[cmd];
+      if(hint){
+        this.print(sessId,`<span class="t-red">ash: ${esc(cmd)}: not found</span>\n<span class="t-yellow">💡 インストールするには: </span><span class="t-cyan">apk add ${esc(hint)}</span>`);
+      }else{
+        this.print(sessId,`<span class="t-red">ash: ${esc(cmd)}: not found</span>`);
+      }
+      return null;
+    }
+    return fn(args,sess,sessId,ret);
+  },
+  parseArgs(cmd){
+    const args=[];let cur='';let inQ=false;let qC='';
+    for(const c of cmd){if(inQ){if(c===qC)inQ=false;else cur+=c;}else if(c==='"'||c==="'"){inQ=true;qC=c;}else if(c===' '){if(cur){args.push(cur);cur='';}}else cur+=c;}
+    if(cur)args.push(cur);return args;
+  },
+  print(sessId,html){const out=document.getElementById(sessId+'-out');if(!out)return;const d=document.createElement('div');d.innerHTML=html;out.appendChild(d);out.scrollTop=out.scrollHeight;},
+  printRaw(sessId,html){this.print(sessId,html);},
+  updateCwd(sessId){const sess=this.sessions[sessId];const el=document.getElementById(sessId+'-cwd');if(el)el.textContent=this.cwdDisplay(sess.cwd);},
+  newTab(sessId){showNotification('💻','ターミナル','新しいタブを開きました');},
+  // Render server execution
+  async execOnServer(sessId,lang,code){
+    const out=document.getElementById(sessId+'-out');
+    const waitLine=document.createElement('div');waitLine.innerHTML=`<span class="t-yellow">⏳ Renderサーバーで実行中...</span>`;out.appendChild(waitLine);out.scrollTop=out.scrollHeight;
+    try{
+      const resp=await fetch(RENDER_SERVER+'/exec',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({lang,code}),signal:AbortSignal.timeout(30000)
+      });
+      waitLine.remove();
+      if(!resp.ok)throw new Error(`HTTP ${resp.status}`);
+      const data=await resp.json();
+      if(data.stdout)this.print(sessId,esc(data.stdout));
+      if(data.stderr)this.print(sessId,`<span class="t-red">${esc(data.stderr)}</span>`);
+      if(data.error)this.print(sessId,`<span class="t-red">エラー: ${esc(data.error)}</span>`);
+    }catch(e){
+      waitLine.remove();
+      this.print(sessId,`<span class="t-red">サーバー接続エラー: ${esc(e.message)}</span>\n<span class="t-dim">Renderサーバーが起動しているか確認してください: ${RENDER_SERVER}</span>`);
+    }
+  }
+};
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+window.TerminalApp=TerminalApp;
+
+// ===== パッケージ→コマンド マッピング =====
+// apk add でインストールが必要なコマンド群
+const PKG_COMMANDS = {
+  // lang
+  'python3': 'python3',
+  'python':  'python3',  // python → python3 alias
+  'py':      'python3',
+  'node':    'nodejs',
+  'nodejs':  'nodejs',
+  'npm':     'npm',
+  'npx':     'npm',
+  // tools
+  'git':     'git',
+  'vim':     'vim',
+  'nano':    'nano',
+  'htop':    'htop',
+  'tmux':    'tmux',
+  'gcc':     'gcc',
+  'make':    'make',
+  'jq':      'jq',
+  'curl':    'curl',
+  'wget':    'wget',
+  'nginx':   'nginx',
+  'redis-cli':'redis',
+  'sqlite3': 'sqlite',
+  'bash':    'bash',
+  'zsh':     'zsh',
+};
+
+// コマンドが使えるか確認（インストール済み or 組み込みコマンド）
+function checkInstalled(cmd, sess, sid) {
+  const req = PKG_COMMANDS[cmd];
+  if (!req) return true; // 組み込みコマンドはチェック不要
+  if (VFS.installedPkgs.has(req)) return true;
+  TerminalApp.print(sid,
+    `<span class="t-red">ash: ${esc(cmd)}: not found</span>\n` +
+    `<span class="t-yellow">💡 インストールするには: </span><span class="t-cyan">apk add ${esc(req)}</span>`
+  );
+  return false;
+}
+
+// ===== SHELL COMMANDS =====
+const SHELL_COMMANDS={
+  help:(args,sess,sid,ret)=>{
+    const installed = [...VFS.installedPkgs].join(', ') || 'なし';
+    const out=`<span class="t-cyan t-bold">kapibara OS Shell — コマンド一覧</span>
+<span class="t-dim">──────────────────────────────────────</span>
+<span class="t-green">ファイル操作:</span>
+  ls [-la] [path]   ファイル一覧    cd [path]    ディレクトリ移動
+  cat [file]        ファイル表示    pwd          現在のディレクトリ
+  mkdir [-p] [dir]  ディレクトリ作成 touch [file] ファイル作成
+  rm [-rf] [path]   削除           cp [src] [dst] コピー
+  mv [src] [dst]    移動/名前変更  find [-name]   検索
+
+<span class="t-green">実行 (apk addでインストール後に使用可):</span>
+  node -e "code"    Node.js実行   ← apk add nodejs
+  python3 -c "code" Python実行    ← apk add python3
+  python -c "code"  Python実行    ← apk add python3 (alias)
+  npm install [pkg] npmパッケージ  ← apk add npm
+  git / vim / nano / curl / wget など
+
+<span class="t-green">パッケージ管理 (apk):</span>
+  apk add [pkg]     インストール
+  apk del [pkg]     削除
+  apk search [q]    検索
+  apk list          インストール済み一覧
+  apk update        リスト更新
+
+<span class="t-green">システム:</span>
+  uname [-a]  neofetch  ps  free [-m]  df [-h]  uptime  date  env  whoami
+
+<span class="t-green">Renderサーバー:</span>
+  run-server        接続確認
+
+<span class="t-dim">現在インストール済み: ${installed}</span>
+<span class="t-dim">Tips: ↑↓ 履歴 · Tab補完 · Ctrl+C 中断 · Ctrl+L クリア · cmd > file リダイレクト</span>`;
+    if(ret)return'help';TerminalApp.print(sid,out);return null;
+  },
+  ls:(args,sess,sid,ret)=>{
+    const flags=args.filter(a=>a.startsWith('-')).join('');const targets=args.filter(a=>!a.startsWith('-'));
+    const path=VFS.resolvePath(targets[0]||'.',sess.cwd);const dir=VFS.ls(path);
+    if(!dir){if(VFS.isFile(path))return flags.includes('l')?lsLong(path,path.split('/').pop()):esc(path.split('/').pop());return`<span class="t-red">ls: ${esc(targets[0]||'.')}: No such file or directory</span>`;}
+    let items=[...dir];if(!flags.includes('a'))items=items.filter(f=>!f.startsWith('.'));
+    if(flags.includes('l')){let out=`total ${Math.floor(Math.random()*40+20)}\n`;items.forEach(f=>{out+=lsLong(path+'/'+f,f)+'\n';});return out.trimEnd();}
+    return items.map(f=>{const fp=path+'/'+f;if(VFS.isDir(fp))return`<span class="t-blue t-bold">${esc(f)}/</span>`;if(f.endsWith('.sh'))return`<span class="t-green">${esc(f)}</span>`;return esc(f);}).join('  ');
+  },
+  cd:(args,sess)=>{const t=args[0]||'~';const r=t==='~'?'/root':VFS.resolvePath(t,sess.cwd);if(!VFS.isDir(r))return`<span class="t-red">cd: ${esc(t)}: No such file or directory</span>`;sess.cwd=r;sess.env.PWD=r;return'';},
+  pwd:(args,sess)=>esc(sess.cwd),
+  cat:(args,sess,sid,ret)=>{
+    if(!args[0])return`<span class="t-red">cat: missing operand</span>`;const results=[];
+    for(const a of args){const p=VFS.resolvePath(a,sess.cwd);if(VFS.isDir(p)){results.push(`<span class="t-red">cat: ${esc(a)}: Is a directory</span>`);continue;}const c=VFS.cat(p);if(c===null){results.push(`<span class="t-red">cat: ${esc(a)}: No such file or directory</span>`);continue;}results.push(ret?c:esc(c));}
+    return results.join('\n');
+  },
+  less:(args,sess,sid,ret)=>SHELL_COMMANDS.cat(args,sess,sid,ret),
+  head:(args,sess,sid,ret)=>{let n=10;const fa=args.filter((a,i)=>{if(a==='-n'&&args[i+1]){n=parseInt(args[i+1])||10;return false;}if(a.match(/^-\d+$/)){n=parseInt(a.slice(1));return false;}return!a.startsWith('-');});const p=VFS.resolvePath(fa[0]||'',sess.cwd);const c=VFS.cat(p);if(!c)return`<span class="t-red">head: ${esc(fa[0])}: No such file</span>`;const l=c.split('\n').slice(0,n).join('\n');return ret?l:esc(l);},
+  tail:(args,sess,sid,ret)=>{let n=10;const fa=args.filter((a,i)=>{if(a==='-n'&&args[i+1]){n=parseInt(args[i+1])||10;return false;}if(a.match(/^-\d+$/)){n=parseInt(a.slice(1));return false;}return!a.startsWith('-');});const p=VFS.resolvePath(fa[0]||'',sess.cwd);const c=VFS.cat(p);if(!c)return`<span class="t-red">tail: ${esc(fa[0])}: No such file</span>`;const l=c.split('\n').slice(-n).join('\n');return ret?l:esc(l);},
+  echo:(args,sess,sid,ret)=>{let t=args.join(' ').replace(/^["']|["']$/g,'');t=t.replace(/\$(\w+)/g,(_,v)=>sess.env[v]||'');return ret?t:esc(t);},
+  mkdir:(args,sess)=>{const dirs=args.filter(a=>!a.startsWith('-'));if(!dirs.length)return`<span class="t-red">mkdir: missing operand</span>`;for(const d of dirs){const p=VFS.resolvePath(d,sess.cwd);if(!VFS.mkdir(p))return`<span class="t-red">mkdir: '${esc(d)}': File exists</span>`;}return'';},
+  touch:(args,sess)=>{if(!args[0])return`<span class="t-red">touch: missing operand</span>`;for(const a of args)VFS.touch(VFS.resolvePath(a,sess.cwd));return'';},
+  rm:(args,sess)=>{const flags=args.filter(a=>a.startsWith('-')).join('');const files=args.filter(a=>!a.startsWith('-'));if(!files.length)return`<span class="t-red">rm: missing operand</span>`;for(const f of files){const p=VFS.resolvePath(f,sess.cwd);if(!VFS.exists(p))return`<span class="t-red">rm: '${esc(f)}': No such file or directory</span>`;if(VFS.isDir(p)&&!flags.includes('r')&&!flags.includes('f'))return`<span class="t-red">rm: '${esc(f)}': Is a directory</span>`;VFS.rm(p,flags.includes('r'));}return'';},
+  cp:(args,sess)=>{if(args.length<2)return`<span class="t-red">cp: missing destination</span>`;const src=VFS.resolvePath(args[0],sess.cwd);const dst=VFS.resolvePath(args[args.length-1],sess.cwd);if(!VFS.isFile(src))return`<span class="t-red">cp: '${esc(args[0])}': No such file</span>`;VFS.cp(src,VFS.isDir(dst)?dst+'/'+args[0].split('/').pop():dst);return'';},
+  mv:(args,sess)=>{if(args.length<2)return`<span class="t-red">mv: missing destination</span>`;const src=VFS.resolvePath(args[0],sess.cwd);const dst=VFS.resolvePath(args[args.length-1],sess.cwd);if(!VFS.exists(src))return`<span class="t-red">mv: '${esc(args[0])}': No such file</span>`;VFS.mv(src,VFS.isDir(dst)?dst+'/'+args[0].split('/').pop():dst);return'';},
+  find:(args,sess,sid,ret)=>{
+    const sp=VFS.resolvePath(args[0]||'.',sess.cwd);const ni=args.indexOf('-name');const np=ni!==-1?args[ni+1]:null;const results=[];
+    const walk=p=>{if(VFS.isDir(p)){const ch=VFS.ls(p);if(ch)ch.forEach(c=>walk(p==='/'?'/'+c:p+'/'+c));}const nm=p.split('/').pop();if(np){const re=new RegExp('^'+np.replace(/\*/g,'.*').replace(/\?/g,'.')+'$');if(!re.test(nm))return;}results.push(p);};
+    walk(sp);const out=results.join('\n');return ret?out:esc(out);
+  },
+  grep:(args,sess,sid,ret)=>{const flags=args.filter(a=>a.startsWith('-')).join('');const nf=args.filter(a=>!a.startsWith('-'));if(!nf[0])return`<span class="t-red">grep: missing pattern</span>`;const p=nf[0];const fa=nf[1];const ci=flags.includes('i');const re=new RegExp(p,ci?'gi':'g');const c=fa?(VFS.cat(VFS.resolvePath(fa,sess.cwd))||''):'';const lines=c.split('\n').filter(l=>re.test(l));if(ret)return lines.join('\n');if(!lines.length)return'';return lines.map(l=>esc(l).replace(new RegExp(esc(p),ci?'gi':'g'),m=>`<span class="t-yellow t-bold">${m}</span>`)).join('\n');},
+  wc:(args,sess)=>{const fa=args.find(a=>!a.startsWith('-'));if(!fa)return`<span class="t-red">wc: missing operand</span>`;const c=VFS.cat(VFS.resolvePath(fa,sess.cwd))||'';const l=c.split('\n').length,w=c.split(/\s+/).filter(Boolean).length,b=c.length;if(args.includes('-l'))return`${l} ${esc(fa)}`;if(args.includes('-w'))return`${w} ${esc(fa)}`;return`${String(l).padStart(6)} ${String(w).padStart(6)} ${String(b).padStart(6)} ${esc(fa)}`;},
+  sort:(args,sess,sid,ret)=>{const flags=args.filter(a=>a.startsWith('-')).join('');const fa=args.find(a=>!a.startsWith('-'));const c=fa?(VFS.cat(VFS.resolvePath(fa,sess.cwd))||''):'';let lines=c.split('\n');if(flags.includes('n'))lines.sort((a,b)=>parseFloat(a)-parseFloat(b));else lines.sort();if(flags.includes('r'))lines.reverse();const out=lines.join('\n');return ret?out:esc(out);},
+  uname:(args)=>{if(args.includes('-a'))return'Linux kapibaraos 6.1.63 #1 SMP Wed Nov 8 10:00:00 UTC 2023 x86_64 GNU/Linux';if(args.includes('-r'))return'6.1.63';if(args.includes('-m'))return'x86_64';return'Linux';},
+  ps:(args)=>{const procs=[{pid:1,tty:'?',time:'00:00:04',cmd:'init'},{pid:2,tty:'?',time:'00:00:00',cmd:'kthreadd'},{pid:89,tty:'?',time:'00:00:01',cmd:'syslogd'},{pid:120,tty:'tty1',time:'00:00:00',cmd:'ash'},{pid:121,tty:'tty1',time:'00:00:00',cmd:'kapibaraos-wm'}];let out=`<span class="t-bold t-white">  PID TTY          TIME CMD</span>\n`;procs.forEach(p=>{out+=`<span class="${p.cmd==='kapibaraos-wm'?'t-green':p.pid===1?'t-cyan':'t-dim'}">${String(p.pid).padStart(5)} ${p.tty.padEnd(12)} ${p.time} ${esc(p.cmd)}</span>\n`;});return out.trimEnd();},
+  top:(args,sess,sid)=>{return`<span class="t-cyan t-bold">top - ${new Date().toTimeString().slice(0,8)} up ${Math.floor(performance.now()/60000)}min</span>\n<span class="t-white">Tasks: 5 total, 1 running</span>\n<span class="t-white">%Cpu: ${(Math.random()*5).toFixed(1)} us, ${(95+Math.random()*4).toFixed(1)} id</span>\n<span class="t-white">MiB Mem: 128 total, ${(87+Math.random()*5).toFixed(0)} free</span>\n\n<span class="t-bold t-white">  PID USER CPU% CMD</span>\n<span class="t-yellow">  121 root  0.3 kapibaraos-wm</span>\n<span class="t-dim">    1 root  0.0 init</span>\n<span class="t-dim">   89 root  0.0 syslogd</span>`;},
+  free:(args)=>{const h=args.join('').includes('h');const tot=131072;const used=Math.floor(29847+Math.random()*5000);const free=tot-used;const fmt=b=>h?(b>1024?(b/1024).toFixed(1)+'K':b+'B'):String(b);return`<span class="t-bold t-white">               total        used        free</span>\n<span class="t-green">Mem:</span>      ${String(tot).padStart(11)} ${String(used).padStart(11)} ${String(free).padStart(11)}\n<span class="t-dim">Swap:</span>             0            0            0`;},
+  df:(args)=>{const h=args.includes('-h');const f=kb=>h?(kb>1024*1024?(kb/1024/1024).toFixed(1)+'G':(kb/1024).toFixed(0)+'M'):String(kb);return`<span class="t-bold t-white">Filesystem      Size  Used Avail Use% Mounted on</span>\n<span class="t-green">tmpfs</span>     ${f(131072).padStart(9)} ${f(18432).padStart(6)} ${f(112640).padStart(7)}  14% /`;},
+  env:(args,sess)=>Object.entries(sess.env).map(([k,v])=>`<span class="t-green">${esc(k)}</span>=${esc(v)}`).join('\n'),
+  export:(args,sess)=>{for(const a of args){const[k,v]=a.split('=');if(v!==undefined)sess.env[k]=v.replace(/^["']|["']$/g,'');}return'';},
+  whoami:()=>'root',
+  id:()=>`uid=0(root) gid=0(root) groups=0(root)`,
+  hostname:(args)=>{if(args[0])VFS.write('/etc/hostname',args[0]);return VFS.cat('/etc/hostname')||'kapibaraos';},
+  date:()=>new Date().toString(),
+  uptime:()=>{const s=Math.floor(performance.now()/1000);return` ${new Date().toTimeString().slice(0,8)} up ${Math.floor(s/60)}m ${s%60}s, 1 user`;},
+  alias:(args,sess)=>{if(!args.length)return Object.entries(sess.aliases).map(([k,v])=>`<span class="t-green">alias</span> ${esc(k)}='${esc(v)}'`).join('\n');for(const a of args){const[k,v]=a.split('=');if(v)sess.aliases[k]=v.replace(/^["']|["']$/g,'');}return'';},
+  which:(args)=>{if(!args[0])return`<span class="t-red">which: missing argument</span>`;const p={ls:'/bin/ls',cat:'/bin/cat',echo:'/bin/echo',python3:'/usr/bin/python3',node:'/usr/bin/node',npm:'/usr/bin/npm',git:'/usr/bin/git',curl:'/usr/bin/curl'};return p[args[0]]||`${esc(args[0])}: not found`;},
+  history:(args,sess)=>sess.history.map((c,i)=>`<span class="t-dim">${String(i+1).padStart(4)}</span>  ${esc(c)}`).join('\n'),
+  clear:(args,sess,sid)=>{document.getElementById(sid+'-out').innerHTML='';return null;},
+  ping:(args)=>{if(!args[0])return`<span class="t-red">ping: missing host</span>`;const h=args[0];const t=[0.3,0.4,0.5].map(v=>(v+Math.random()*0.5).toFixed(3));return`PING ${esc(h)}: 56 data bytes\n64 bytes from ${esc(h)}: icmp_seq=0 time=${t[0]} ms\n64 bytes from ${esc(h)}: icmp_seq=1 time=${t[1]} ms\n<span class="t-dim">3 packets, 0% loss, avg=${t[1]} ms</span>`;},
+  wget:(args)=>{if(!args[0])return`<span class="t-red">wget: missing URL</span>`;const u=args.find(a=>!a.startsWith('-'))||args[0];const fn=u.split('/').pop().split('?')[0]||'index.html';return`<span class="t-dim">--${new Date().toISOString().slice(0,19)}-- ${esc(u)}</span>\nConnecting... <span class="t-yellow">[simulated]</span>\n<span class="t-green">200 OK</span> — '${esc(fn)}' saved`;},
+  curl:(args)=>{const u=args.find(a=>!a.startsWith('-'));if(!u)return`<span class="t-red">curl: missing URL</span>`;return`<span class="t-yellow">[simulated] HTTP/1.1 200 OK</span>\nDate: ${new Date().toUTCString()}`;},
+  ifconfig:()=>`eth0: inet 10.0.0.1  netmask 255.255.255.0\n      UP BROADCAST RUNNING MULTICAST\nlo:   inet 127.0.0.1  netmask 255.0.0.0`,
+  apk:(args,sess,sid)=>{
+    const sub=args[0];const pkgs=args.slice(1).filter(a=>!a.startsWith('-'));
+    // パッケージ → Renderサーバーの実行言語マッピング
+    const APK_CATALOG = {
+      'python3':true,'python3-pip':true,'nodejs':true,'npm':true,'git':true,
+      'vim':true,'nano':true,'curl':true,'wget':true,'bash':true,'zsh':true,
+      'htop':true,'tmux':true,'gcc':true,'make':true,'jq':true,'nginx':true,
+      'redis':true,'sqlite':true,'docker':true,'tree':true,'rsync':true,
+      'openssh':true,'openssl':true,'tar':true,'gzip':true,'unzip':true,
+      'alpine-base':true,'musl':true,'busybox':true,
+    };
+    if(sub==='add'){
+      if(!pkgs.length)return`<span class="t-red">apk: missing package name\nUsage: apk add &lt;package&gt;</span>`;
+      TerminalApp.print(sid,`<span class="t-dim">fetch https://dl-cdn.alpinelinux.org/alpine/v3.18/main/APKINDEX.tar.gz</span>`);
+      let i=0;
+      const installNext=()=>{
+        if(i>=pkgs.length){
+          TerminalApp.print(sid,`<span class="t-green">OK: ${VFS.installedPkgs.size} packages installed.</span>`);
+          showNotification('📦','apk',`${pkgs.join(', ')} インストール完了`);
+          return;
+        }
+        const pkg=pkgs[i++];
+        if(!APK_CATALOG[pkg]){
+          TerminalApp.print(sid,`<span class="t-red">ERROR: ${esc(pkg)}: package not found</span>`);
+          installNext();return;
+        }
+        if(VFS.installedPkgs.has(pkg)){
+          TerminalApp.print(sid,`<span class="t-dim">(${i}/${pkgs.length}) ${esc(pkg)} [already installed]</span>`);
+          installNext();return;
+        }
+        const delay=800+Math.random()*600;
+        TerminalApp.print(sid,`<span class="t-dim">(${i}/${pkgs.length}) Installing </span><span class="t-cyan">${esc(pkg)}</span><span class="t-dim">...</span>`);
+        setTimeout(()=>{VFS.installedPkgs.add(pkg);TerminalApp.print(sid,`<span class="t-green">✓</span> ${esc(pkg)}`);installNext();},delay);
+      };
+      installNext();return null;
+    }
+    if(sub==='del'||sub==='remove'){
+      if(!pkgs.length)return`<span class="t-red">apk: missing package name</span>`;
+      pkgs.forEach(p=>{VFS.installedPkgs.delete(p);});
+      showNotification('🗑️','apk',`${pkgs.join(', ')} 削除完了`);
+      return pkgs.map(p=>`<span class="t-yellow">Purging </span><span class="t-red">${esc(p)}</span>`).join('\n');
+    }
+    if(sub==='update')return`<span class="t-dim">fetch https://dl-cdn.alpinelinux.org/alpine/v3.18/main/APKINDEX.tar.gz</span>\n<span class="t-green">OK:</span> 14918 distinct packages available`;
+    if(sub==='upgrade')return`<span class="t-green">OK:</span> All packages up to date.`;
+    if(sub==='search'){
+      const q=pkgs[0]||'';
+      const all=Object.keys(APK_CATALOG);
+      const results=all.filter(p=>p.includes(q));
+      if(!results.length)return`<span class="t-red">No packages matching '${esc(q)}'</span>`;
+      return results.map(p=>VFS.installedPkgs.has(p)?`<span class="t-cyan">${esc(p)}</span> <span class="t-green">[installed]</span>`:`<span class="t-cyan">${esc(p)}</span>`).join('\n');
+    }
+    if(sub==='list'||sub==='info'){
+      const list=[...VFS.installedPkgs];
+      if(!list.length)return`<span class="t-dim">No packages installed. Try: apk add python3</span>`;
+      return`<span class="t-dim">Installed packages (${list.length}):</span>\n`+list.map(p=>`<span class="t-green">✓</span> ${esc(p)}`).join('\n');
+    }
+    return`<span class="t-yellow">apk</span> - Alpine Package Manager
+Usage: apk &lt;command&gt; [options] [packages]
+Commands:
+  add &lt;pkg&gt;      Install package
+  del &lt;pkg&gt;      Remove package
+  update         Refresh index
+  search &lt;q&gt;    Search packages
+  list           List installed`;
+  },
+  neofetch:(args,sess)=>{const mem=Math.floor(29847+Math.random()*3000);return`<span class="t-purple">  ▄█████████████▄  </span>  <span class="t-bold">root@kapibaraos</span>
+<span class="t-purple"> ████████████████ </span>  <span class="t-dim">──────────────────────</span>
+<span class="t-purple"> ████  🦔  █████ </span>  <span class="t-bold">OS:</span> kapibara OS 1.0
+<span class="t-purple"> ████████████████ </span>  <span class="t-bold">Kernel:</span> 6.1.63
+<span class="t-purple">  ▀█████████████▀  </span>  <span class="t-bold">Shell:</span> ash (kapibara OS)
+                    <span class="t-bold">CPU:</span> WASM (x86_64 emulated)
+                    <span class="t-bold">Memory:</span> ${mem}/${131072} MiB
+                    <span class="t-bold">Packages:</span> ${VFS.installedPkgs.size} (apk)
+                    <span style="color:#f00">■</span><span style="color:#fa0">■</span><span style="color:#ff0">■</span><span style="color:#0f0">■</span><span style="color:#0ff">■</span><span style="color:#00f">■</span><span style="color:#f0f">■</span><span style="color:#fff">■</span>`;},
+  git:(args)=>{const s=args[0];if(s==='init')return`Initialized empty Git repository`;if(s==='status')return`On branch main\nnothing to commit, working tree clean`;if(s==='log')return`<span class="t-yellow">commit a1b2c3d</span>\nAuthor: root <root@kapibaraos>\nDate: ${new Date().toDateString()}\n\n    Initial commit`;return`<span class="t-yellow">[git ${esc(s||'')} — simulated]</span>`;},
+  vim:(args,sess,sid)=>{if(args[0]){const p=VFS.resolvePath(args[0],sess.cwd);const c=VFS.cat(p)||'';TextEditorApp.openFile(p,c);showNotification('📝','vim',`${args[0]} を開きました`);return`<span class="t-yellow">Opening ${esc(args[0])} in editor...</span>`;}return`<span class="t-yellow">use 'vim filename'</span>`;},
+  nano:(args,sess,sid)=>SHELL_COMMANDS.vim(args,sess,sid),
+  fortune:()=>{const q=['"Talk is cheap. Show me the code." — Linus Torvalds','"First, solve the problem. Then, write the code." — John Johnson','"It works on my machine." — Every developer ever','"kapibara OS: Linux in your browser!" — tkhr'];return`<span class="t-yellow">${esc(q[Math.floor(Math.random()*q.length)])}</span>`;},
+  exit:(args,sess,sid)=>{showNotification('💻','ターミナル','セッション終了');return`<span class="t-dim">logout</span>`;},
+  source:(args,sess,sid)=>{if(!args[0])return`<span class="t-red">source: missing file</span>`;const p=VFS.resolvePath(args[0],sess.cwd);const c=VFS.cat(p);if(!c)return`<span class="t-red">source: ${esc(args[0])}: No such file</span>`;for(const l of c.split('\n')){const ll=l.trim();if(ll&&!ll.startsWith('#'))TerminalApp.exec(sid,ll);}return'';},
+  sh:(a,s,sid)=>SHELL_COMMANDS.source(a,s,sid),
+  bash:(a,s,sid)=>SHELL_COMMANDS.source(a,s,sid),
+  // Node.js — apk add nodejs でインストール後に使用可
+  node:(args,sess,sid,ret)=>{
+    if(!checkInstalled('node',sess,sid))return null;
+    if(args[0]==='--version'||args[0]==='-v'||args[0]==='--v')return'v20.9.0';
+    if(args[0]==='-e'||args[0]==='--eval'){
+      const code=args.slice(1).join(' ').replace(/^["']|["']$/g,'');
+      if(!code)return`<span class="t-red">node: -e requires an argument</span>`;
+      TerminalApp.execOnServer(sid,'node',code);return null;
+    }
+    if(args[0]&&!args[0].startsWith('-')){
+      const p=VFS.resolvePath(args[0],sess.cwd);const c=VFS.cat(p);
+      if(c===null)return`<span class="t-red">node: cannot open file '${esc(args[0])}': No such file or directory</span>`;
+      TerminalApp.execOnServer(sid,'node',c);return null;
+    }
+    return`<span class="t-green">Welcome to Node.js v20.9.0</span>\n<span class="t-dim">Usage: node -e "code"  |  node file.js\n(Ctrl+C to exit)</span>`;
+  },
+  // npm — apk add npm でインストール後に使用可
+  npm:(args,sess,sid)=>{
+    if(!checkInstalled('npm',sess,sid))return null;
+    const sub=args[0];
+    if(!sub)return`<span class="t-yellow">npm</span> <span class="t-dim">&lt;command&gt;\nCommands: install, uninstall, start, run, init, list</span>`;
+    if(sub==='install'||sub==='i'||sub==='add'){
+      const pkgs=args.slice(1).filter(a=>!a.startsWith('-'));
+      const target=pkgs.length?pkgs.join(', '):'dependencies from package.json';
+      TerminalApp.print(sid,`<span class="t-dim">npm: installing ${esc(target)}...</span>`);
+      setTimeout(()=>{
+        const n=Math.floor(Math.random()*50+10);
+        TerminalApp.print(sid,`<span class="t-green">added ${n} packages</span> in ${(Math.random()*3+1).toFixed(1)}s`);
+        showNotification('📦','npm',`${target} インストール完了`);
+      },1200+Math.random()*1000);
+      return null;
+    }
+    if(sub==='start')return`<span class="t-yellow">npm run start → use 'node server.js' for Render execution</span>`;
+    if(sub==='init')return`<span class="t-green">Wrote to package.json</span>`;
+    if(sub==='list'||sub==='ls'){const p=VFS.cat(VFS.resolvePath('package.json',sess.cwd));return p?`<span class="t-dim">${esc(p)}</span>`:`<span class="t-dim">(no package.json in current dir)</span>`;}
+    return`<span class="t-red">npm: unknown command '${esc(sub)}'</span>`;
+  },
+  npx:(args,sess,sid)=>{
+    if(!checkInstalled('npm',sess,sid))return null;
+    return`<span class="t-yellow">npx: running ${esc(args[0]||'')}... [simulated]</span>`;
+  },
+  // Python3 — apk add python3 でインストール後に使用可
+  python3:(args,sess,sid,ret)=>{
+    if(!checkInstalled('python3',sess,sid))return null;
+    if(args[0]==='--version'||args[0]==='-V'||args[0]==='--V')return'Python 3.11.6';
+    if(args[0]==='-c'||args[0]==='--command'){
+      const code=args.slice(1).join(' ').replace(/^["']|["']$/g,'');
+      if(!code)return`<span class="t-red">python3: -c requires an argument</span>`;
+      TerminalApp.execOnServer(sid,'python3',code);return null;
+    }
+    if(args[0]&&!args[0].startsWith('-')){
+      const p=VFS.resolvePath(args[0],sess.cwd);const c=VFS.cat(p);
+      if(c===null)return`<span class="t-red">python3: can't open file '${esc(args[0])}': [Errno 2] No such file or directory</span>`;
+      TerminalApp.execOnServer(sid,'python3',c);return null;
+    }
+    return`<span class="t-green">Python 3.11.6</span> <span class="t-dim">(Render server)</span>\n<span class="t-dim">Usage: python3 -c "code"  |  python3 file.py</span>`;
+  },
+  // python → python3 alias
+  python:(args,sess,sid,ret)=>{
+    if(!checkInstalled('python',sess,sid))return null;
+    return SHELL_COMMANDS.python3(args,sess,sid,ret);
+  },
+  py:(args,sess,sid,ret)=>SHELL_COMMANDS.python(args,sess,sid,ret),
+  // pip — apk add python3-pip
+  pip:(args,sess,sid)=>{
+    if(!checkInstalled('python3',sess,sid))return null;
+    const sub=args[0];
+    if(sub==='install'){
+      const pkgs=args.slice(1).filter(a=>!a.startsWith('-'));
+      TerminalApp.print(sid,`<span class="t-dim">Collecting ${esc(pkgs.join(', '))}...</span>`);
+      setTimeout(()=>{TerminalApp.print(sid,`<span class="t-green">Successfully installed ${esc(pkgs.join(', '))}</span>`);},1000+Math.random()*800);
+      return null;
+    }
+    return`<span class="t-yellow">pip ${esc(sub||'')} [simulated]\nUsage: pip install &lt;package&gt;</span>`;
+  },
+  pip3:(a,s,sid)=>SHELL_COMMANDS.pip(a,s,sid),
+  'run-server':(args,sess,sid)=>{
+    TerminalApp.print(sid,`<span class="t-yellow">Renderサーバーへ接続確認中: ${RENDER_SERVER}</span>`);
+    fetch(RENDER_SERVER+'/ping').then(r=>r.json()).then(d=>{TerminalApp.print(sid,`<span class="t-green">✓ サーバー接続OK</span> — ${esc(JSON.stringify(d))}`);}).catch(e=>{TerminalApp.print(sid,`<span class="t-red">✗ 接続失敗: ${esc(e.message)}</span>\n<span class="t-dim">RenderのURLを確認してください: ${RENDER_SERVER}</span>`);});
+    return null;
+  },
+  'server-start':(args,sess,sid)=>{
+    TerminalApp.print(sid,`<span class="t-yellow">⚠ サーバーはRenderで自動起動します。\nダッシュボード: https://dashboard.render.com</span>`);return null;
+  },
+};
+function lsLong(path,name){const isDir=VFS.isDir(path);const perm=isDir?'drwxr-xr-x':(name.endsWith('.sh')?'-rwxr-xr-x':'-rw-r--r--');const size=isDir?4096:(VFS.cat(path)||'').length;const col=isDir?'t-blue t-bold':(name.endsWith('.sh')?'t-green':'');return`<span class="t-dim">${perm}  1 root root ${String(size).padStart(6)} Nov  8 10:00 </span><span class="${col}">${esc(name)}</span>`;}
+</script>
+<script>
+// ===== BROWSER (CORSプロキシ経由で実際にWebを表示) =====
+const BrowserApp={
+  instances:{},
+  CORS_PROXIES:[
+    'https://api.allorigins.win/raw?url=',
+    'https://corsproxy.io/?',
+    'https://cors-anywhere.herokuapp.com/',
+  ],
+  proxyIdx:0,
+  open(){
+    const id=WM.create({title:'ブラウザ',icon:'🌐',w:900,h:580});
+    this.instances[id]={url:'home',history:['home'],histIdx:0,loading:false};
+    this.render(id);
+  },
+  render(id){
+    const inst=this.instances[id];const content=WM.getContent(id);
+    content.innerHTML=`
+      <div class="browser-wrap">
+        <div class="browser-toolbar">
+          <button class="browser-nav-btn" onclick="BrowserApp.back('${id}')" ${inst.histIdx<=0?'disabled':''}>←</button>
+          <button class="browser-nav-btn" onclick="BrowserApp.forward('${id}')" ${inst.histIdx>=inst.history.length-1?'disabled':''}>→</button>
+          <button class="browser-nav-btn" onclick="BrowserApp.reload('${id}')">↻</button>
+          <button class="browser-nav-btn" onclick="BrowserApp.goto('${id}','home')">🏠</button>
+          <input class="browser-url" id="${id}-url" value="${inst.url==='home'?'':inst.url}" placeholder="URLを入力 (例: https://example.com)"
+            onkeydown="if(event.key==='Enter')BrowserApp.goto('${id}',this.value||'home')" />
+          <button class="browser-nav-btn" onclick="BrowserApp.goto('${id}',document.getElementById('${id}-url').value||'home')">→</button>
+        </div>
+        <div class="browser-bookmarks">
+          <div class="bm-btn" onclick="BrowserApp.goto('${id}','home')">🏠 ホーム</div>
+          <div class="bm-btn" onclick="BrowserApp.goto('${id}','about:about')">📊 システム</div>
+          <div class="bm-btn" onclick="BrowserApp.goto('${id}','https://example.com')">🌐 Example</div>
+          <div class="bm-btn" onclick="BrowserApp.goto('${id}','https://wikipedia.org')">📚 Wikipedia</div>
+          <div class="bm-btn" onclick="BrowserApp.goto('${id}','https://github.com/kapibarazoku0422-create/nexuschat')">📂 NexusChat</div>
+        </div>
+        <div class="browser-content" id="${id}-page"></div>
+      </div>`;
+    this.loadPage(id);
+  },
+  internalPages:{
+    'home':()=>`<div class="browser-page">
+      <h1>🦔 kapibara OS ブラウザ</h1>
+      <p>URLバーに <code>https://...</code> を入力するとCORSプロキシ経由でWebページを表示します。</p>
+      <hr><h2>📌 ブックマーク</h2>
+      <p><a onclick="BrowserApp._goto(window._bwid,'about:about')">about:about</a> — システム情報</p>
+      <p><a onclick="BrowserApp._goto(window._bwid,'https://example.com')">https://example.com</a></p>
+      <p><a onclick="BrowserApp._goto(window._bwid,'https://wikipedia.org')">https://wikipedia.org</a> — Wikipedia</p>
+      <p><a onclick="BrowserApp._goto(window._bwid,'https://github.com/kapibarazoku0422-create/nexuschat')">NexusChat GitHub</a></p>
+      <hr><p style="font-size:12px;color:#999">kapibara OS Browser v1.0 · CORSプロキシ経由でWebを表示</p></div>`,
+    'about:about':()=>{const now=new Date();const up=Math.floor(performance.now()/1000);return`<div class="browser-page"><h1>📊 kapibara OS システム情報</h1><table><tr><th>項目</th><th>値</th></tr><tr><td>OS</td><td>kapibara OS 1.0</td></tr><tr><td>カーネル</td><td>Linux 6.1.63</td></tr><tr><td>ユーザー</td><td>tkhr (root)</td></tr><tr><td>稼働時間</td><td>${Math.floor(up/60)}分 ${up%60}秒</td></tr><tr><td>パッケージ</td><td>${VFS.installedPkgs.size}</td></tr></table></div>`;}
+  },
+  loadPage(id){
+    const inst=this.instances[id];const pageEl=document.getElementById(id+'-page');const urlEl=document.getElementById(id+'-url');
+    if(urlEl)urlEl.value=inst.url==='home'?'':inst.url;if(!pageEl)return;
+    window._bwid=id;
+    const fn=this.internalPages[inst.url];
+    if(fn){pageEl.innerHTML=fn();WM.setTitle(id,inst.url==='home'?'ブラウザ':inst.url);return;}
+    // external URL via CORS proxy
+    if(inst.url.startsWith('http')){
+      pageEl.innerHTML=`<div class="browser-loading"><div style="font-size:32px">⏳</div><div>読み込み中...</div><div style="font-size:12px;color:#999">${esc(inst.url)}</div></div>`;
+      WM.setTitle(id,'読み込み中...');
+      const proxy=this.CORS_PROXIES[this.proxyIdx%this.CORS_PROXIES.length];
+      fetch(proxy+encodeURIComponent(inst.url))
+        .then(r=>{if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.text();})
+        .then(html=>{
+          // inject base tag for relative URLs
+          const base=new URL(inst.url);const baseTag=`<base href="${base.origin}${base.pathname.replace(/[^/]+$/,'')}">`;
+          const modified=html.replace(/<head>/i,'<head>'+baseTag).replace(/<a /gi,'<a target="_self" ');
+          pageEl.innerHTML='';const iframe=document.createElement('iframe');
+          iframe.srcdoc=modified;iframe.style.cssText='width:100%;height:100%;border:none;';
+          pageEl.appendChild(iframe);WM.setTitle(id,inst.url);
+        })
+        .catch(e=>{
+          // try next proxy
+          this.proxyIdx++;
+          if(this.proxyIdx<this.CORS_PROXIES.length*2){setTimeout(()=>this.loadPage(id),500);}
+          else{this.proxyIdx=0;pageEl.innerHTML=`<div class="browser-page"><h1>⚠️ 読み込み失敗</h1><p>CORSプロキシ経由でページを取得できませんでした。</p><p>エラー: ${esc(e.message)}</p><p><a href="${inst.url}" target="_blank">新しいタブで開く</a></p></div>`;}
+        });
+    }else{pageEl.innerHTML=`<div class="browser-page"><p>未対応のURL: ${esc(inst.url)}</p></div>`;}
+  },
+  _goto(id,url){window._bwid=id;this.goto(id,url);},
+  goto(id,url){
+    if(!url||url==='')url='home';
+    window._bwid=id;const inst=this.instances[id];
+    inst.history=inst.history.slice(0,inst.histIdx+1);inst.history.push(url);inst.histIdx++;inst.url=url;
+    this.render(id);
+  },
+  back(id){const inst=this.instances[id];if(inst.histIdx>0){inst.histIdx--;inst.url=inst.history[inst.histIdx];this.render(id);}},
+  forward(id){const inst=this.instances[id];if(inst.histIdx<inst.history.length-1){inst.histIdx++;inst.url=inst.history[inst.histIdx];this.render(id);}},
+  reload(id){this.loadPage(id);},
+};
+window.BrowserApp=BrowserApp;
+</script>
+<script>
+// ===== FILE MANAGER =====
+const FileManagerApp={
+  instances:{},
+  open(startPath){
+    const id=WM.create({title:'ファイルマネージャ',icon:'📁',w:800,h:520});
+    this.instances[id]={cwd:startPath||'/root',history:[startPath||'/root'],histIdx:0,selected:null,view:'grid'};
+    this.render(id);
+  },
+  render(id){
+    const inst=this.instances[id];const content=WM.getContent(id);
+    content.innerHTML=`
+      <div class="fm-wrap">
+        <div class="fm-sidebar">
+          <div class="fm-sidebar-section">クイックアクセス</div>
+          <div class="fm-sidebar-item ${inst.cwd==='/root'?'active':''}" onclick="FileManagerApp.nav('${id}','/root')">🏠 ホーム</div>
+          <div class="fm-sidebar-item ${inst.cwd==='/root/projects'?'active':''}" onclick="FileManagerApp.nav('${id}','/root/projects')">📁 プロジェクト</div>
+          <div class="fm-sidebar-item ${inst.cwd==='/home/tkhr'?'active':''}" onclick="FileManagerApp.nav('${id}','/home/tkhr')">👤 tkhr</div>
+          <div class="fm-sidebar-item ${inst.cwd==='/tmp'?'active':''}" onclick="FileManagerApp.nav('${id}','/tmp')">🗂 一時ファイル</div>
+          <div class="fm-sidebar-section">デバイス</div>
+          <div class="fm-sidebar-item ${inst.cwd==='/'?'active':''}" onclick="FileManagerApp.nav('${id}','/')">💾 ルート (/)</div>
+        </div>
+        <div class="fm-main">
+          <div class="fm-toolbar">
+            <button class="fm-btn" onclick="FileManagerApp.goBack('${id}')">←</button>
+            <button class="fm-btn" onclick="FileManagerApp.goUp('${id}')">↑</button>
+            <span class="fm-path">${esc(inst.cwd)}</span>
+            <button class="fm-btn" onclick="FileManagerApp.newFolder('${id}')">📁+</button>
+            <button class="fm-btn" onclick="FileManagerApp.newFile('${id}')">📄+</button>
+          </div>
+          <div class="fm-content" id="${id}-fc">
+            <div class="fm-grid" id="${id}-grid"></div>
+          </div>
+        </div>
+      </div>`;
+    this.renderGrid(id);
+  },
+  renderGrid(id){
+    const inst=this.instances[id];const grid=document.getElementById(id+'-grid');if(!grid)return;
+    const items=VFS.ls(inst.cwd)||[];
+    grid.innerHTML=items.map(name=>{const fp=inst.cwd==='/'?'/'+name:inst.cwd+'/'+name;const icon=VFS.getIcon(fp);const isDir=VFS.isDir(fp);return`<div class="fm-item ${inst.selected===fp?'selected':''}" onclick="FileManagerApp.open2('${id}','${fp.replace(/'/g,"\\'")}',${isDir})">
+        <div class="fm-item-icon">${icon}</div>
+        <div class="fm-item-name">${esc(name)}</div>
+      </div>`}).join('')||`<div style="padding:32px;text-align:center;color:var(--text-muted)">空のディレクトリ</div>`;
+  },
+  select(id,fp,isDir){this.instances[id].selected=fp;this.renderGrid(id);},
+  open2(id,fp,isDir){if(isDir)this.nav(id,fp);else{const c=VFS.cat(fp)||'';TextEditorApp.openFile(fp,c);}},
+  nav(id,path){const inst=this.instances[id];inst.history=inst.history.slice(0,inst.histIdx+1);inst.history.push(path);inst.histIdx++;inst.cwd=path;this.render(id);},
+  goBack(id){const inst=this.instances[id];if(inst.histIdx>0){inst.histIdx--;inst.cwd=inst.history[inst.histIdx];this.render(id);}},
+  goUp(id){const inst=this.instances[id];const p=inst.cwd.substring(0,inst.cwd.lastIndexOf('/'))||'/';this.nav(id,p);},
+  newFolder(id){const nm=prompt('フォルダ名:');if(nm){const p=VFS.resolvePath(nm,this.instances[id].cwd);VFS.mkdir(p);this.renderGrid(id);}},
+  newFile(id){const nm=prompt('ファイル名:');if(nm){const p=VFS.resolvePath(nm,this.instances[id].cwd);VFS.touch(p,'');this.renderGrid(id);}},
+};
+window.FileManagerApp=FileManagerApp;
+
+// ===== TEXT EDITOR =====
+const TextEditorApp={
+  instances:{},
+  open(){this.openFile(null,'');},
+  openFile(filePath,content){
+    const id=WM.create({title:filePath?filePath.split('/').pop():'新規ファイル',icon:'📝',w:780,h:540});
+    this.instances[id]={filePath,content:content||'',modified:false};
+    this.render(id);
+  },
+  render(id){
+    const inst=this.instances[id];const content=WM.getContent(id);
+    const fn=inst.filePath?inst.filePath.split('/').pop():'新規ファイル';
+    content.innerHTML=`
+      <div class="editor-wrap">
+        <div class="editor-toolbar">
+          <span class="editor-filename">${esc(fn)}${inst.modified?'*':''}</span>
+          <button class="fm-btn" onclick="TextEditorApp.save('${id}')">💾 保存</button>
+          <button class="fm-btn" onclick="TextEditorApp.saveAs('${id}')">名前を付けて保存</button>
+        </div>
+        <textarea class="editor-textarea" id="${id}-ta" spellcheck="false" placeholder="ここに入力...">${esc(inst.content)}</textarea>
+        <div class="editor-statusbar">
+          <span id="${id}-sb">行1, 列1</span>
+          <span>${inst.filePath?esc(inst.filePath):'未保存'}</span>
+          <span>UTF-8</span>
+        </div>
+      </div>`;
+    const ta=document.getElementById(id+'-ta');
+    ta.addEventListener('input',()=>{inst.content=ta.value;inst.modified=true;const tb=content.querySelector('.editor-filename');if(tb)tb.textContent=fn+'*';});
+    ta.addEventListener('keydown',e=>{if(e.key==='Tab'){e.preventDefault();const s=ta.selectionStart;ta.value=ta.value.substring(0,s)+'  '+ta.value.substring(ta.selectionEnd);ta.selectionStart=ta.selectionEnd=s+2;}if(e.key==='s'&&e.ctrlKey){e.preventDefault();this.save(id);}});
+    ta.addEventListener('keyup',()=>{const v=ta.value.substring(0,ta.selectionStart);const l=v.split('\n').length;const c=v.length-v.lastIndexOf('\n');const sb=document.getElementById(id+'-sb');if(sb)sb.textContent=`行${l}, 列${c}`;});
+  },
+  save(id){const inst=this.instances[id];if(!inst.filePath){this.saveAs(id);return;}VFS.write(inst.filePath,inst.content);inst.modified=false;const ta=document.getElementById(id+'-ta');if(ta)ta.value=inst.content;showNotification('💾','保存完了',inst.filePath.split('/').pop());},
+  saveAs(id){const inst=this.instances[id];const p=prompt('保存先パス:',inst.filePath||'/root/untitled.txt');if(p){inst.filePath=p;VFS.write(p,inst.content);inst.modified=false;WM.setTitle(id,p.split('/').pop());showNotification('💾','保存完了',p.split('/').pop());}},
+};
+window.TextEditorApp=TextEditorApp;
+
+// ===== CALCULATOR =====
+const CalculatorApp={
+  instances:{},
+  open(){const id=WM.create({title:'電卓',icon:'🔢',w:300,h:460});this.instances[id]={expr:'',result:'0',hasResult:false};this.render(id);},
+  render(id){
+    const inst=this.instances[id];const content=WM.getContent(id);
+    content.innerHTML=`<div class="calc-wrap">
+      <div class="calc-display">
+        <div class="calc-expr" id="${id}-expr">${inst.expr||''}</div>
+        <div class="calc-result" id="${id}-result">${inst.result}</div>
+      </div>
+      <div class="calc-grid">
+        ${[['C','±','%','÷'],['7','8','9','×'],['4','5','6','−'],['1','2','3','+'],[['0',''],'.',,'=']].map(row=>Array.isArray(row[0])?`<button class="calc-btn calc-btn-num calc-btn-zero" onclick="CalculatorApp.press('${id}','0')">0</button><button class="calc-btn calc-btn-num" onclick="CalculatorApp.press('${id}','.')">.</button><button class="calc-btn calc-btn-eq" onclick="CalculatorApp.press('${id}','=')">=</button>`:row.map(b=>{const isOp=['÷','×','−','+'].includes(b);const isF=['C','±','%'].includes(b);const isEq=b==='=';return`<button class="calc-btn ${isEq?'calc-btn-eq':isOp?'calc-btn-op':isF?'calc-btn-func':'calc-btn-num'}" onclick="CalculatorApp.press('${id}','${b}')">${b}</button>`;}).join('')).join('')}
+      </div>
+    </div>`;
+  },
+  press(id,btn){
+    const inst=this.instances[id];const exEl=document.getElementById(id+'-expr');const rEl=document.getElementById(id+'-result');
+    if(btn==='C'){inst.expr='';inst.result='0';inst.hasResult=false;}
+    else if(btn==='='){try{const e=inst.expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-');const r=Function('"use strict";return('+e+')')();inst.result=isFinite(r)?parseFloat(r.toFixed(10)).toString():'エラー';inst.expr=inst.result;inst.hasResult=true;}catch{inst.result='エラー';inst.hasResult=true;}}
+    else if(btn==='±'){if(inst.expr.startsWith('-'))inst.expr=inst.expr.slice(1);else if(inst.expr)inst.expr='-'+inst.expr;inst.result=inst.expr||'0';}
+    else if(btn==='%'){try{const v=Function('"use strict";return('+inst.expr+')')();inst.expr=String(v/100);inst.result=inst.expr;}catch{}}
+    else{if(inst.hasResult&&/[\d.]/.test(btn)){inst.expr='';inst.hasResult=false;}else if(inst.hasResult)inst.hasResult=false;inst.expr+=btn;try{const e=inst.expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-');const pv=Function('"use strict";return('+e+')')();if(isFinite(pv))inst.result=parseFloat(pv.toFixed(10)).toString();}catch{inst.result=inst.expr;}}
+    if(exEl)exEl.textContent=inst.expr;if(rEl)rEl.textContent=inst.result;
+  },
+};
+window.CalculatorApp=CalculatorApp;
+
+// ===== SYSTEM MONITOR =====
+const SystemMonitorApp={
+  instances:{},
+  open(){const id=WM.create({title:'システムモニター',icon:'📊',w:740,h:500});this.instances[id]={tab:'resources',iv:null};this.render(id);this.startUpdate(id);},
+  render(id){
+    const inst=this.instances[id];const content=WM.getContent(id);
+    content.innerHTML=`<div class="sysmon-wrap">
+      <div class="sysmon-tabs">
+        <div class="sysmon-tab ${inst.tab==='resources'?'active':''}" onclick="SystemMonitorApp.setTab('${id}','resources')">リソース</div>
+        <div class="sysmon-tab ${inst.tab==='processes'?'active':''}" onclick="SystemMonitorApp.setTab('${id}','processes')">プロセス</div>
+        <div class="sysmon-tab ${inst.tab==='storage'?'active':''}" onclick="SystemMonitorApp.setTab('${id}','storage')">ストレージ</div>
+      </div>
+      <div class="sysmon-content" id="${id}-sc"></div>
+    </div>`;
+    this.renderTab(id);
+  },
+  renderTab(id){
+    const inst=this.instances[id];const el=document.getElementById(id+'-sc');if(!el)return;
+    if(inst.tab==='resources'){
+      const cpu=(Math.random()*15+1).toFixed(1);const mem=Math.floor(29000+Math.random()*10000);const memPct=Math.floor(mem/1310.72);const up=Math.floor(performance.now()/1000);
+      el.innerHTML=`<div class="sysmon-grid">
+        <div class="sysmon-card"><div class="sysmon-card-title">CPU使用率</div><div class="sysmon-value">${cpu}<span>%</span></div><div class="sysmon-bar-wrap"><div class="sysmon-bar bar-cpu" style="width:${cpu}%"></div></div><div style="font-size:11px;color:var(--text-muted);margin-top:6px">WASM (x86_64) · 1200MHz</div></div>
+        <div class="sysmon-card"><div class="sysmon-card-title">メモリ</div><div class="sysmon-value">${(mem/1024).toFixed(0)}<span>MB / 128MB</span></div><div class="sysmon-bar-wrap"><div class="sysmon-bar bar-mem" style="width:${memPct}%"></div></div><div style="font-size:11px;color:var(--text-muted);margin-top:6px">${memPct}% 使用中</div></div>
+      </div>
+      <div class="sysmon-card"><div class="sysmon-card-title">システム情報</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:8px;font-size:12px">
+        <div><div style="color:var(--text-muted)">OS</div><div style="font-family:var(--font-mono)">kapibara OS 1.0</div></div>
+        <div><div style="color:var(--text-muted)">カーネル</div><div style="font-family:var(--font-mono)">6.1.63</div></div>
+        <div><div style="color:var(--text-muted)">稼働時間</div><div style="font-family:var(--font-mono)">${Math.floor(up/60)}m ${up%60}s</div></div>
+        <div><div style="color:var(--text-muted)">ユーザー</div><div style="font-family:var(--font-mono)">tkhr</div></div>
+        <div><div style="color:var(--text-muted)">パッケージ</div><div style="font-family:var(--font-mono)">${VFS.installedPkgs.size}</div></div>
+        <div><div style="color:var(--text-muted)">シェル</div><div style="font-family:var(--font-mono)">/bin/ash</div></div>
+      </div></div>
+      <div style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:8px">🔄 1秒ごとに自動更新</div>`;
+    }else if(inst.tab==='processes'){
+      const procs=[{pid:1,user:'root',cpu:'0.0',mem:'0.4',cmd:'/sbin/init'},{pid:89,user:'root',cpu:(Math.random()*0.2).toFixed(1),mem:'0.6',cmd:'syslogd'},{pid:120,user:'root',cpu:(Math.random()*0.5).toFixed(1),mem:'1.0',cmd:'/bin/ash'},{pid:200,user:'root',cpu:(Math.random()*3).toFixed(1),mem:'1.6',cmd:'kapibaraos-wm'}];
+      el.innerHTML=`<table class="proc-table"><thead><tr><th>PID</th><th>USER</th><th>CPU%</th><th>MEM%</th><th>CMD</th></tr></thead><tbody>${procs.map(p=>`<tr><td>${p.pid}</td><td>${p.user}</td><td>${p.cpu}</td><td>${p.mem}</td><td><code>${esc(p.cmd)}</code></td></tr>`).join('')}</tbody></table>`;
+    }else{
+      el.innerHTML=`<div class="sysmon-card"><div class="sysmon-card-title">ストレージ</div><div class="sysmon-value">18<span>MB / 128MB</span></div><div class="sysmon-bar-wrap"><div class="sysmon-bar bar-disk" style="width:14%"></div></div><div style="font-size:11px;color:var(--text-muted);margin-top:6px">tmpfs · 14% 使用中</div></div>`;
+    }
+  },
+  setTab(id,tab){this.instances[id].tab=tab;this.render(id);},
+  startUpdate(id){if(this.instances[id])this.instances[id].iv=setInterval(()=>{if(this.instances[id])this.renderTab(id);},1000);},
+};
+window.SystemMonitorApp=SystemMonitorApp;
+
+// ===== SETTINGS =====
+const SettingsApp={
+  instances:{},
+  open(){const id=WM.create({title:'設定',icon:'⚙️',w:700,h:500});this.instances[id]={tab:'system'};this.render(id);},
+  render(id){
+    const inst=this.instances[id];const content=WM.getContent(id);
+    content.innerHTML=`<div class="settings-wrap">
+      <div class="settings-sidebar">
+        <div class="settings-nav-item ${inst.tab==='system'?'active':''}" onclick="SettingsApp.setTab('${id}','system')">🖥️ システム</div>
+        <div class="settings-nav-item ${inst.tab==='appearance'?'active':''}" onclick="SettingsApp.setTab('${id}','appearance')">🎨 外観</div>
+        <div class="settings-nav-item ${inst.tab==='terminal'?'active':''}" onclick="SettingsApp.setTab('${id}','terminal')">💻 ターミナル</div>
+        <div class="settings-nav-item ${inst.tab==='about'?'active':''}" onclick="SettingsApp.setTab('${id}','about')">ℹ️ このOSについて</div>
+      </div>
+      <div class="settings-main" id="${id}-sm"></div>
+    </div>`;
+    this.renderTab(id);
+  },
+  renderTab(id){
+    const inst=this.instances[id];const el=document.getElementById(id+'-sm');if(!el)return;
+    if(inst.tab==='system'){el.innerHTML=`<div class="settings-section-title">システム</div><div class="settings-card">
+      <div class="settings-row"><div class="settings-row-icon">🔔</div><div class="settings-row-info"><div class="settings-row-title">通知</div><div class="settings-row-sub">デスクトップ通知を表示</div></div><div class="settings-toggle on" onclick="this.classList.toggle('on')"></div></div>
+      <div class="settings-row"><div class="settings-row-icon">⚡</div><div class="settings-row-info"><div class="settings-row-title">起動時にターミナルを開く</div></div><div class="settings-toggle" onclick="this.classList.toggle('on')"></div></div>
+    </div>`;}
+    else if(inst.tab==='appearance'){el.innerHTML=`<div class="settings-section-title">外観</div><div class="settings-card">
+      <div class="settings-row"><div class="settings-row-icon">🎨</div><div class="settings-row-info"><div class="settings-row-title">壁紙</div></div><button class="fm-btn" onclick="changeWallpaper()">変更</button></div>
+      <div class="settings-row"><div class="settings-row-icon">🌙</div><div class="settings-row-info"><div class="settings-row-title">ダークモード</div></div><div class="settings-toggle on"></div></div>
+    </div>`;}
+    else if(inst.tab==='terminal'){el.innerHTML=`<div class="settings-section-title">ターミナル</div><div class="settings-card">
+      <div class="settings-row"><div class="settings-row-icon">🌐</div><div class="settings-row-info"><div class="settings-row-title">Renderサーバー URL</div><div class="settings-row-sub">Node.js / Python実行用</div></div></div>
+      <div class="settings-row"><input style="flex:1;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;font-family:var(--font-mono);outline:none" value="${RENDER_SERVER}" onchange="window.RENDER_SERVER=this.value;showNotification('⚙️','設定','サーバーURLを更新しました')"/></div>
+    </div>`;}
+    else{el.innerHTML=`<div class="settings-section-title">kapibara OSについて</div><div class="settings-card">
+      <div class="settings-row"><div class="settings-row-icon">🦔</div><div class="settings-row-info"><div class="settings-row-title">kapibara OS</div><div class="settings-row-sub">バージョン 1.0.0</div></div></div>
+      <div class="settings-row"><div class="settings-row-icon">🐧</div><div class="settings-row-info"><div class="settings-row-title">カーネル</div><div class="settings-row-sub">Linux 6.1.63 (WebAssembly)</div></div></div>
+      <div class="settings-row"><div class="settings-row-icon">👤</div><div class="settings-row-info"><div class="settings-row-title">ユーザー</div><div class="settings-row-sub">tkhr (root)</div></div></div>
+      <div class="settings-row"><div class="settings-row-icon">🔨</div><div class="settings-row-info"><div class="settings-row-title">開発者</div><div class="settings-row-sub">tkhr — 個人利用専用</div></div></div>
+    </div>`;}
+  },
+  setTab(id,tab){this.instances[id].tab=tab;this.render(id);},
+};
+window.SettingsApp=SettingsApp;
+
+// ===== PACKAGE MANAGER =====
+const PackageManagerApp={
+  instances:{},
+  allPkgs:[
+    {name:'vim',icon:'📝',desc:'高機能テキストエディタ',ver:'9.0',size:'3.2MB',cat:'editor'},
+    {name:'nano',icon:'📄',desc:'シンプルなテキストエディタ',ver:'7.2',size:'0.8MB',cat:'editor'},
+    {name:'git',icon:'🔀',desc:'バージョン管理',ver:'2.42.0',size:'5.1MB',cat:'dev'},
+    {name:'python3',icon:'🐍',desc:'Pythonランタイム',ver:'3.11.6',size:'8.4MB',cat:'lang'},
+    {name:'nodejs',icon:'🟢',desc:'Node.js ランタイム',ver:'20.9.0',size:'12.3MB',cat:'lang'},
+    {name:'npm',icon:'📦',desc:'Node.js パッケージマネージャ',ver:'10.1.0',size:'4.2MB',cat:'dev'},
+    {name:'nginx',icon:'🌐',desc:'高性能Webサーバー',ver:'1.24.0',size:'1.8MB',cat:'server'},
+    {name:'redis',icon:'🔴',desc:'インメモリDB',ver:'7.2.3',size:'2.1MB',cat:'db'},
+    {name:'sqlite',icon:'📦',desc:'軽量SQLite',ver:'3.43.2',size:'1.1MB',cat:'db'},
+    {name:'htop',icon:'📊',desc:'プロセスビューア',ver:'3.2.2',size:'0.3MB',cat:'sys'},
+    {name:'tmux',icon:'🪟',desc:'ターミナルマルチプレクサ',ver:'3.3a',size:'0.5MB',cat:'sys'},
+    {name:'gcc',icon:'⚙️',desc:'GNUコンパイラ',ver:'12.2.1',size:'18.7MB',cat:'dev'},
+    {name:'docker',icon:'🐳',desc:'コンテナプラットフォーム',ver:'24.0.7',size:'42.1MB',cat:'dev'},
+    {name:'jq',icon:'🔧',desc:'JSONプロセッサ',ver:'1.7',size:'0.4MB',cat:'dev'},
+    {name:'bash',icon:'💲',desc:'Bash Shell',ver:'5.2.21',size:'0.9MB',cat:'shell'},
+    {name:'zsh',icon:'⚡',desc:'Z Shell',ver:'5.9',size:'1.2MB',cat:'shell'},
+  ],
+  open(){const id=WM.create({title:'パッケージマネージャ',icon:'📦',w:740,h:520});this.instances[id]={tab:'all',search:'',installing:new Set()};this.render(id);},
+  render(id){
+    const inst=this.instances[id];const content=WM.getContent(id);
+    content.innerHTML=`<div class="pkg-wrap">
+      <div class="pkg-header">
+        <div class="pkg-tabs">
+          ${['all','dev','lang','sys','server','shell'].map(t=>`<div class="pkg-tab ${inst.tab===t?'active':''}" onclick="PackageManagerApp.setTab('${id}','${t}')">${{all:'すべて',dev:'開発',lang:'言語',sys:'システム',server:'サーバー',shell:'シェル'}[t]}</div>`).join('')}
+        </div>
+        <div class="pkg-search-row">
+          <input class="pkg-search" id="${id}-ps" placeholder="パッケージを検索..." value="${inst.search}" oninput="PackageManagerApp.onSearch('${id}',this.value)"/>
+          <button class="fm-btn" onclick="PackageManagerApp.updateIdx('${id}')">🔄 更新</button>
+        </div>
+      </div>
+      <div class="pkg-list" id="${id}-pl"></div>
+    </div>`;
+    this.renderList(id);
+  },
+  renderList(id){
+    const inst=this.instances[id];const list=document.getElementById(id+'-pl');if(!list)return;
+    let pkgs=this.allPkgs;if(inst.tab!=='all')pkgs=pkgs.filter(p=>p.cat===inst.tab);if(inst.search)pkgs=pkgs.filter(p=>p.name.includes(inst.search)||p.desc.includes(inst.search));
+    list.innerHTML=pkgs.map(pkg=>{const installed=VFS.installedPkgs.has(pkg.name);const installing=inst.installing.has(pkg.name);return`<div class="pkg-item">
+      <div class="pkg-icon">${pkg.icon}</div>
+      <div class="pkg-info"><div class="pkg-name">${pkg.name}</div><div class="pkg-desc">${pkg.desc}</div><div class="pkg-meta">v${pkg.ver} · ${pkg.size}</div></div>
+      ${installing?`<button class="pkg-action" disabled style="opacity:0.6">インストール中...</button>`:installed?`<button class="pkg-action pkg-installed" onclick="PackageManagerApp.remove('${id}','${pkg.name}')">✓ 削除</button>`:`<button class="pkg-action pkg-install" onclick="PackageManagerApp.install('${id}','${pkg.name}')">インストール</button>`}
+    </div>`}).join('')||`<div style="padding:32px;text-align:center;color:var(--text-muted)">パッケージが見つかりません</div>`;
+  },
+  setTab(id,tab){this.instances[id].tab=tab;this.render(id);},
+  onSearch(id,v){this.instances[id].search=v;this.renderList(id);},
+  install(id,name){const inst=this.instances[id];inst.installing.add(name);this.renderList(id);setTimeout(()=>{VFS.installedPkgs.add(name);inst.installing.delete(name);this.renderList(id);showNotification('📦','インストール完了',`${name} をインストールしました`);},1500+Math.random()*1000);},
+  remove(id,name){if(!confirm(`${name} を削除しますか？`))return;VFS.installedPkgs.delete(name);this.renderList(id);showNotification('🗑️','削除完了',`${name} を削除しました`);},
+  updateIdx(id){showNotification('🔄','パッケージリスト','更新中...');setTimeout(()=>showNotification('✅','完了','14918パッケージ利用可能'),1200);},
+};
+window.PackageManagerApp=PackageManagerApp;
+</script>
+<script>
+// ===== DESKTOP MANAGER =====
+let wallpaperStyle=0;
+const wallpapers=[
+  // 0: Kapibara gradient
+  canvas=>{const ctx=canvas.getContext('2d');const W=canvas.width,H=canvas.height;const g=ctx.createLinearGradient(0,0,W,H);g.addColorStop(0,'#0d1b2a');g.addColorStop(0.4,'#1a1a2e');g.addColorStop(0.7,'#16213e');g.addColorStop(1,'#0f3460');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);for(let i=0;i<3;i++){ctx.beginPath();const y=H*0.4+i*H*0.1;ctx.moveTo(0,y);for(let x=0;x<=W;x+=4){ctx.lineTo(x,y+Math.sin((x/W)*Math.PI*3+i)*30);}ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();ctx.fillStyle=['rgba(0,120,212,0.06)','rgba(155,114,207,0.05)','rgba(57,208,216,0.04)'][i];ctx.fill();}for(let i=0;i<200;i++){const x=Math.random()*W,y=Math.random()*H*0.7;ctx.beginPath();ctx.arc(x,y,Math.random()*1.2,0,Math.PI*2);ctx.fillStyle=`rgba(255,255,255,${0.2+Math.random()*0.5})`;ctx.fill();}},
+  // 1: Grid
+  canvas=>{const ctx=canvas.getContext('2d');const W=canvas.width,H=canvas.height;ctx.fillStyle='#080814';ctx.fillRect(0,0,W,H);ctx.strokeStyle='rgba(0,120,212,0.07)';ctx.lineWidth=1;for(let x=0;x<=W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}for(let y=0;y<=H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}const rg=ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*0.7);rg.addColorStop(0,'rgba(0,120,212,0.07)');rg.addColorStop(1,'transparent');ctx.fillStyle=rg;ctx.fillRect(0,0,W,H);},
+  // 2: Deep space
+  canvas=>{const ctx=canvas.getContext('2d');const W=canvas.width,H=canvas.height;ctx.fillStyle='#000008';ctx.fillRect(0,0,W,H);for(let i=0;i<400;i++){ctx.beginPath();ctx.arc(Math.random()*W,Math.random()*H,Math.random()*1.5,0,Math.PI*2);ctx.fillStyle=`rgba(255,255,255,${0.1+Math.random()*0.8})`;ctx.fill();}const nebula=ctx.createRadialGradient(W*0.6,H*0.3,0,W*0.6,H*0.3,W*0.3);nebula.addColorStop(0,'rgba(155,114,207,0.06)');nebula.addColorStop(0.5,'rgba(0,120,212,0.04)');nebula.addColorStop(1,'transparent');ctx.fillStyle=nebula;ctx.fillRect(0,0,W,H);},
+];
+function drawWallpaper(){const c=document.getElementById('wallpaper-canvas');if(!c)return;c.width=window.innerWidth;c.height=window.innerHeight;wallpapers[wallpaperStyle%wallpapers.length](c);}
+function changeWallpaper(){wallpaperStyle=(wallpaperStyle+1)%wallpapers.length;drawWallpaper();showNotification('🎨','壁紙','壁紙を変更しました');}
+window.addEventListener('resize',drawWallpaper);
+
+// ===== CLOCK =====
+function updateClock(){
+  const now=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  const timeStr=`${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const dateStr=`${now.getFullYear()}/${pad(now.getMonth()+1)}/${pad(now.getDate())} ${['日','月','火','水','木','金','土'][now.getDay()]}`;
+  const tc=document.getElementById('tray-clock');if(tc)tc.innerHTML=`<div>${timeStr}</div><div style="font-size:10px;color:var(--text-muted)">${dateStr}</div>`;
+  const lt=document.getElementById('lc-time');if(lt)lt.textContent=timeStr;
+  const ld=document.getElementById('lc-date');if(ld)ld.textContent=`${now.getFullYear()}年${pad(now.getMonth()+1)}月${pad(now.getDate())}日`;
+}
+setInterval(updateClock,1000);updateClock();
+
+// ===== NOTIFICATIONS =====
+function showNotification(icon,title,msg){
+  const container=document.getElementById('notifications');
+  const n=document.createElement('div');n.className='notif';
+  n.innerHTML=`<div class="notif-icon">${icon}</div><div class="notif-body"><div class="notif-title">${esc(title)}</div><div class="notif-msg">${esc(msg)}</div></div>`;
+  container.appendChild(n);setTimeout(()=>{n.style.transition='opacity 0.3s,transform 0.3s';n.style.opacity='0';n.style.transform='translateX(100%)';setTimeout(()=>n.remove(),300);},3500);
+}
+
+// ===== DESKTOP ACTIONS =====
+function openApp(name){
+  document.getElementById('start-menu').style.display='none';
+  const map={terminal:()=>TerminalApp.open(),filemanager:()=>FileManagerApp.open(),texteditor:()=>TextEditorApp.open(),browser:()=>BrowserApp.open(),calculator:()=>CalculatorApp.open(),packagemanager:()=>PackageManagerApp.open(),systemmonitor:()=>SystemMonitorApp.open(),settings:()=>SettingsApp.open()};
+  if(map[name])map[name]();
+}
+function toggleStartMenu(){const m=document.getElementById('start-menu');m.style.display=m.style.display==='block'?'none':'block';}
+function filterStartApps(q){const items=document.querySelectorAll('.start-app');items.forEach(el=>{el.style.display=el.textContent.toLowerCase().includes(q.toLowerCase())?'flex':'none';});}
+function lockScreen(){document.getElementById('desktop').style.display='none';document.getElementById('login-screen').style.display='flex';document.getElementById('login-password').value='';}
+function rebootOS(){if(confirm('再起動しますか？')){document.getElementById('desktop').style.display='none';document.getElementById('login-screen').style.display='none';document.getElementById('boot-screen').style.display='flex';document.getElementById('boot-progress-bar').style.width='0%';document.getElementById('boot-log').innerHTML='';startBoot();}}
+function shutdownOS(){if(confirm('シャットダウンしますか？')){document.body.innerHTML='<div style="position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center;color:#333;font-size:14px;font-family:monospace">kapibara OS シャットダウン完了</div>';}}
+function ctx_refresh(){drawWallpaper();}
+
+// Context menu
+document.addEventListener('contextmenu',e=>{if(e.target.closest('#desktop-icons')||e.target.closest('.desk-icon'))return;e.preventDefault();const m=document.getElementById('context-menu');m.style.display='block';m.style.left=Math.min(e.clientX,window.innerWidth-m.offsetWidth-8)+'px';m.style.top=Math.min(e.clientY,window.innerHeight-m.offsetHeight-8)+'px';});
+document.addEventListener('click',e=>{if(!e.target.closest('#context-menu'))document.getElementById('context-menu').style.display='none';if(!e.target.closest('#taskbar-start')&&!e.target.closest('#start-menu'))document.getElementById('start-menu').style.display='none';});
+
+// Desktop icon selection
+document.addEventListener('click',e=>{if(e.target.closest('#desktop-icons')){document.querySelectorAll('.desk-icon').forEach(el=>el.classList.remove('selected'));const di=e.target.closest('.desk-icon');if(di)di.classList.add('selected');}else if(!e.target.closest('#desktop-icons'))document.querySelectorAll('.desk-icon').forEach(el=>el.classList.remove('selected'));});
+
+// ===== LOGIN =====
+function doLogin(){
+  const pw=document.getElementById('login-password').value;
+  const err=document.getElementById('login-error');
+  if(pw==='tkhr0422'){
+    err.style.display='none';
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('desktop').style.display='block';
+    drawWallpaper();
+    showNotification('🦔','kapibara OS','ようこそ、tkhr！');
+  }else{
+    err.style.display='block';
+    document.getElementById('login-password').value='';
+    document.getElementById('login-password').focus();
+    setTimeout(()=>err.style.display='none',2000);
+  }
+}
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('login-screen').style.display!=='none')doLogin();});
+
+// Login particles
+function initParticles(){
+  const c=document.getElementById('login-particles');if(!c)return;c.width=window.innerWidth;c.height=window.innerHeight;const ctx=c.getContext('2d');const pts=Array.from({length:60},()=>({x:Math.random()*c.width,y:Math.random()*c.height,vx:(Math.random()-0.5)*0.3,vy:(Math.random()-0.5)*0.3,r:Math.random()*1.5+0.5}));
+  const anim=()=>{ctx.clearRect(0,0,c.width,c.height);pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>c.width)p.vx*=-1;if(p.y<0||p.y>c.height)p.vy*=-1;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle='rgba(0,120,212,0.4)';ctx.fill();});requestAnimationFrame(anim);};anim();
+}
+
+// ===== BOOT SEQUENCE =====
+const bootMessages=[
+  {text:'SeaBIOS (version 1.16.0)',delay:50,cls:'dim'},
+  {text:'',delay:60},
+  {text:'[    0.000000] Linux version 6.1.63 (kapibaraos@build) #1 SMP',delay:70},
+  {text:'[    0.012000] BIOS-provided physical RAM map:',delay:40},
+  {text:'[    0.012000]  [mem 0x0000000000000000-0x0000000007ffffff] usable',delay:35},
+  {text:'[    0.043000] ACPI: RSDP 0x000F0000',delay:50},
+  {text:'[    0.123000] NET: Registered PF_INET protocol family',delay:55},
+  {text:'[    0.400000] EXT4-fs (sda1): mounted filesystem',delay:70},
+  {text:'[    0.680000] Run /sbin/init as init process',delay:80},
+  {text:'',delay:80},
+  {text:'Starting kapibara OS v1.0...',delay:100,cls:'info'},
+  {text:'',delay:40},
+  {text:' * Mounting /proc...                    [ OK ]',delay:70,cls:'ok'},
+  {text:' * Mounting /sys...                     [ OK ]',delay:60,cls:'ok'},
+  {text:' * Loading kernel modules...            [ OK ]',delay:90,cls:'ok'},
+  {text:' * Setting hostname to kapibaraos...    [ OK ]',delay:70,cls:'ok'},
+  {text:' * Starting networking (eth0)...        [ OK ]',delay:90,cls:'ok'},
+  {text:' * Starting kapibara OS Desktop...      [ OK ]',delay:110,cls:'ok'},
+  {text:'',delay:80},
+  {text:'kapibara OS 1.0 (Linux 6.1.63 · WebAssembly)',delay:90,cls:'info'},
+];
+async function startBoot(){
+  const log=document.getElementById('boot-log');const bar=document.getElementById('boot-progress-bar');if(!log||!bar)return;log.innerHTML='';
+  for(let i=0;i<bootMessages.length;i++){
+    const m=bootMessages[i];bar.style.width=Math.floor(i/bootMessages.length*100)+'%';
+    if(m.text!==''){const l=document.createElement('div');if(m.cls==='ok')l.style.color='#3ecf8e';else if(m.cls==='info')l.style.color='#2ea8ff';else if(m.cls==='dim')l.style.color='#333';l.textContent=m.text;log.appendChild(l);log.scrollTop=log.scrollHeight;}else log.appendChild(document.createElement('br'));
+    await new Promise(r=>setTimeout(r,m.delay));
+  }
+  bar.style.width='100%';await new Promise(r=>setTimeout(r,300));
+  document.getElementById('boot-screen').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  initParticles();
+}
+document.addEventListener('DOMContentLoaded',()=>startBoot());
+</script>
+</body>
+</html>
